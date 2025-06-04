@@ -1,16 +1,17 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { ApplicationModal } from "@/components/ApplicationModal";
+import { JobCard } from "@/components/JobCard";
+import { JobDetailsModal } from "@/components/JobDetailsModal";
+import { JobFilters } from "@/components/JobFilters";
+import { JobPostModal } from "@/components/JobPostModal";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, MapPin, Plus, Megaphone } from "lucide-react";
-import { JobCard } from "@/components/JobCard";
-import { JobFilters } from "@/components/JobFilters";
-import { ApplicationModal } from "@/components/ApplicationModal";
-import { JobPostModal } from "@/components/JobPostModal";
 import { type Job } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { MapPin, Megaphone, Plus, Search } from "lucide-react";
+import { useState } from "react";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,6 +20,7 @@ export default function Home() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const [isJobPostModalOpen, setIsJobPostModalOpen] = useState(false);
+  const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   
   const [filters, setFilters] = useState({
     jobTypes: [] as string[],
@@ -49,6 +51,11 @@ export default function Home() {
   const handleApply = (job: Job) => {
     setSelectedJob(job);
     setIsApplicationModalOpen(true);
+  };
+
+  const handleViewJob = (job: Job) => {
+    setSelectedJob(job);
+    setIsJobDetailsModalOpen(true);
   };
 
   const handleJobPost = () => {
@@ -198,7 +205,7 @@ export default function Home() {
               ) : (
                 jobs.map((job, index) => (
                   <div key={job.id}>
-                    <JobCard job={job} onApply={handleApply} />
+                    <JobCard job={job} onApply={handleApply} onView={handleViewJob} />
                     
                     {/* Advertisement Card every 3rd job */}
                     {(index + 1) % 3 === 0 && (
@@ -258,6 +265,16 @@ export default function Home() {
       <JobPostModal
         isOpen={isJobPostModalOpen}
         onClose={() => setIsJobPostModalOpen(false)}
+      />
+
+      <JobDetailsModal
+        job={selectedJob}
+        isOpen={isJobDetailsModalOpen}
+        onClose={() => {
+          setIsJobDetailsModalOpen(false);
+          setSelectedJob(null);
+        }}
+        onApply={handleApply}
       />
     </div>
   );

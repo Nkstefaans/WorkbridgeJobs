@@ -1,4 +1,5 @@
-import { jobs, applications, type Job, type Application, type InsertJob, type InsertApplication } from "@shared/schema";
+import { type Application, type InsertApplication, type InsertJob, type Job } from "@shared/schema";
+import { FirebaseStorage } from "./firebaseStorage.js";
 
 export interface IStorage {
   // Job methods
@@ -13,6 +14,7 @@ export interface IStorage {
   createApplication(application: InsertApplication): Promise<Application>;
 }
 
+// Legacy MemStorage class (keeping for fallback)
 export class MemStorage implements IStorage {
   private jobs: Map<number, Job>;
   private applications: Map<number, Application>;
@@ -30,125 +32,20 @@ export class MemStorage implements IStorage {
   }
 
   private seedInitialData() {
-    const initialJobs: InsertJob[] = [
-      {
-        title: "Senior Software Engineer",
-        company: "TechCorp Solutions",
-        location: "San Francisco, CA",
-        description: "Join our innovative team to build scalable web applications using React, Node.js, and cloud technologies. We're looking for passionate developers who love solving complex problems and working in a collaborative environment.",
-        salary_min: 120000,
-        salary_max: 180000,
-        job_type: "Full-time",
-        skills: ["React", "Node.js", "AWS", "TypeScript", "PostgreSQL"],
-        company_logo: "https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      {
-        title: "UX/UI Designer",
-        company: "Creative Design Studio",
-        location: "New York, NY",
-        description: "Create intuitive user experiences for our digital products. Work with cross-functional teams to translate business requirements into beautiful, functional designs that delight our users.",
-        salary_min: 80000,
-        salary_max: 120000,
-        job_type: "Full-time",
-        skills: ["Figma", "Adobe XD", "Prototyping", "User Research"],
-        company_logo: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      {
-        title: "Data Scientist",
-        company: "DataFlow Analytics",
-        location: "Remote",
-        description: "Analyze large datasets to extract meaningful insights and drive business decisions. Experience with Python, R, and machine learning algorithms required. Work with cutting-edge data technologies.",
-        salary_min: 100000,
-        salary_max: 150000,
-        job_type: "Remote",
-        skills: ["Python", "R", "Machine Learning", "SQL", "Tableau"],
-        company_logo: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      {
-        title: "Marketing Manager",
-        company: "Growth Marketing Pro",
-        location: "Austin, TX",
-        description: "Lead marketing campaigns and drive customer acquisition. Experience with digital marketing, content strategy, and analytics required. Help us scale our marketing efforts and build our brand.",
-        salary_min: 70000,
-        salary_max: 95000,
-        job_type: "Full-time",
-        skills: ["Digital Marketing", "Analytics", "SEO", "Content Strategy"],
-        company_logo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      // Government positions
-      {
-        title: "Federal IT Specialist",
-        company: "Department of Technology",
-        location: "Washington, DC",
-        description: "Support government technology infrastructure and digital transformation initiatives. Work on modernizing federal systems and ensuring cybersecurity compliance across government agencies.",
-        salary_min: 85000,
-        salary_max: 120000,
-        job_type: "Full-time",
-        skills: ["Government Security", "Network Administration", "Compliance", "Project Management"],
-        company_logo: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      {
-        title: "Policy Analyst",
-        company: "State Government Affairs",
-        location: "Sacramento, CA",
-        description: "Research and analyze policy proposals, prepare briefing materials, and support legislative processes. Collaborate with stakeholders to develop effective public policy solutions.",
-        salary_min: 65000,
-        salary_max: 85000,
-        job_type: "Full-time",
-        skills: ["Policy Research", "Data Analysis", "Public Administration", "Report Writing"],
-        company_logo: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      // Municipal positions
-      {
-        title: "City Planning Coordinator",
-        company: "City of Portland",
-        location: "Portland, OR",
-        description: "Support urban planning initiatives and community development projects. Review development proposals, conduct site visits, and facilitate public engagement in municipal planning processes.",
-        salary_min: 60000,
-        salary_max: 80000,
-        job_type: "Full-time",
-        skills: ["Urban Planning", "GIS", "Community Engagement", "Project Coordination"],
-        company_logo: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      {
-        title: "Municipal Engineer",
-        company: "City Public Works Department",
-        location: "Denver, CO",
-        description: "Design and oversee municipal infrastructure projects including roads, water systems, and public facilities. Ensure compliance with safety standards and environmental regulations.",
-        salary_min: 75000,
-        salary_max: 105000,
-        job_type: "Full-time",
-        skills: ["Civil Engineering", "CAD", "Project Management", "Municipal Infrastructure"],
-        company_logo: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      // Retail positions
-      {
-        title: "Store Manager",
-        company: "Downtown Retail Store",
-        location: "Chicago, IL",
-        description: "Lead daily retail operations, manage staff, and drive sales performance. Create exceptional customer service experiences and ensure store compliance with company standards.",
-        salary_min: 45000,
-        salary_max: 65000,
-        job_type: "Full-time",
-        skills: ["Retail Management", "Customer Service", "Team Leadership", "Sales"],
-        company_logo: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      },
-      {
-        title: "Sales Associate",
-        company: "Fashion Retail Chain",
-        location: "Miami, FL",
-        description: "Provide excellent customer service, assist with product selection, and maintain store presentation. Work in a fast-paced retail environment with opportunities for advancement.",
-        salary_min: 28000,
-        salary_max: 35000,
-        job_type: "Part-time",
-        skills: ["Customer Service", "Sales", "Product Knowledge", "Cash Handling"],
-        company_logo: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
-      }
-    ];
+    // Add the City of Tshwane driver position
+    const tshwaneDriverJob: InsertJob = {
+      title: "Driver - Mobile Healthcare Clinic (Contract Position)",
+      company: "City of Tshwane Metropolitan Municipality",
+      location: "Olievenhoutbosch, Tshwane, South Africa",
+      description: "Reference Code: 85DE357-2025 (E)\nClosing Date: 10.06.2025\n\nDRIVER (ONE CONTRACT POSITION: OLIEVENHOUTBOSCH PRIMARY HEALTHCARE MOBILE CLINIC) - 12-MONTH PERIOD\n\nDepartment: Health, Division: General, Sub-Division: Administration\nLocation: Olievenhoutbosch (or as indicated by the Health Department)\n\nPOSITION OVERVIEW:\nThe Driver will be responsible for driving the mobile clinic to dedicated areas in the informal settlements of the Olievenhoutbosch area.\n\nMINIMUM REQUIREMENTS:\n• Grade 10 or equivalent qualification\n• Relevant experience in administrative support services\n• Computer literacy\n• Valid EC1 or EC driving licence with a valid professional driving permit\n• Must undergo a criminal record check and fingerprints to be taken by the Tshwane Metro Police Department at own cost\n\nPERSONAL ATTRIBUTES/COMPETENCIES:\n• Honesty, patience, good driving behaviour\n• Good communication skills\n• Good presentation skills\n• Good negotiation skills\n\nPRIMARY FUNCTIONS:\n• Preparing the vehicle by conducting pre-trip operator maintenance\n• Planning the route and requirements by studying the schedule or responding to ad hoc requests by the office\n• Transporting mobile clinic staff\n• Maintaining vehicles (daily maintenance, fuel checks, log sheets, reporting problems)\n• Keeping vehicles clean and tidy\n• Performing any other tasks as assigned\n\nSALARY SCALE: R17,787.00 per month (fixed)\nJOB LEVEL: T6\nENQUIRIES: Ms Nadine Roberts (012 358 8644)",
+      salary_min: 187000,
+      salary_max: 213444,
+      job_type: "Contract",
+      skills: ["EC1 Driving Licence", "Professional Driving Permit", "Vehicle Maintenance", "Healthcare Support", "Administrative Support", "Computer Literacy", "Route Planning"],
+      company_logo: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
+    };
 
-    initialJobs.forEach(job => {
-      this.createJob(job);
-    });
+    this.createJob(tshwaneDriverJob);
   }
 
   async getJobs(): Promise<Job[]> {
@@ -166,6 +63,10 @@ export class MemStorage implements IStorage {
     const job: Job = {
       ...insertJob,
       id,
+      salary_min: insertJob.salary_min ?? null,
+      salary_max: insertJob.salary_max ?? null,
+      skills: insertJob.skills ?? null,
+      company_logo: insertJob.company_logo ?? null,
       posted_date: new Date(),
     };
     this.jobs.set(id, job);
@@ -220,6 +121,9 @@ export class MemStorage implements IStorage {
     const application: Application = {
       ...insertApplication,
       id,
+      phone: insertApplication.phone ?? null,
+      cover_letter: insertApplication.cover_letter ?? null,
+      resume_file: insertApplication.resume_file ?? null,
       applied_date: new Date(),
     };
     this.applications.set(id, application);
@@ -227,4 +131,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use Firebase storage directly
+console.log('🔥 Initializing Firebase Storage...');
+export const storage: IStorage = new FirebaseStorage();

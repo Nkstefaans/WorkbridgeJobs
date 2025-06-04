@@ -1,0 +1,38 @@
+// Firestore Security Rules for WorkBridge Jobs Platform
+// Copy these rules to Firebase Console > Firestore Database > Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Jobs collection - Read access for all, write access restricted
+    match /jobs/{jobId} {
+      // Allow anyone to read jobs (for public job listings)
+      allow read: if true;
+      
+      // For now, allow all writes for development
+      // In production, you should restrict this to authenticated users/admins
+      allow write: if true;
+      
+      // Production rules (uncomment when ready):
+      // allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Applications collection - Restricted access
+    match /applications/{applicationId} {
+      // Allow anyone to create applications (job applications)
+      allow create: if true;
+      
+      // For now, allow all reads for development
+      // In production, restrict to admins only
+      allow read: if true;
+      
+      // Production rules (uncomment when ready):
+      // allow read, update, delete: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Deny all other document access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

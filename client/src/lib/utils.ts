@@ -7,9 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatSalary(min?: number, max?: number): string {
   if (!min && !max) return "Salary not specified";
-  if (min && max) return `$${(min / 1000).toFixed(0)}k - $${(max / 1000).toFixed(0)}k`;
-  if (min) return `$${(min / 1000).toFixed(0)}k+`;
-  if (max) return `Up to $${(max / 1000).toFixed(0)}k`;
+  if (min && max) return `R${(min / 1000).toFixed(0)}k - R${(max / 1000).toFixed(0)}k`;
+  if (min) return `R${(min / 1000).toFixed(0)}k+`;
+  if (max) return `Up to R${(max / 1000).toFixed(0)}k`;
   return "Salary not specified";
 }
 

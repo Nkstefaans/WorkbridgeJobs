@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
 
 export function Header() {
   const [location] = useLocation();
@@ -11,54 +11,71 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center space-x-8">
+        {/* Logo on the left */}
+        <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
             <span className="text-2xl font-bold tracking-wider">WORK BRIDGE</span>
           </Link>
-          
-          <nav className="hidden lg:flex space-x-6">
-            <Link 
-              href="/" 
-              className={`transition-colors hover:text-white ${
-                location === "/" ? "text-white" : "text-primary-foreground/80"
-              }`}
-            >
-              Find Jobs
-            </Link>
-            <Link 
-              href="/post-job" 
-              className={`transition-colors hover:text-white ${
-                location === "/post-job" ? "text-white" : "text-primary-foreground/80"
-              }`}
-            >
-              Post Jobs
-            </Link>
-            <Link 
-              href="/government" 
-              className={`transition-colors hover:text-white ${
-                location === "/government" ? "text-white" : "text-primary-foreground/80"
-              }`}
-            >
-              Government
-            </Link>
-            <Link 
-              href="/municipality" 
-              className={`transition-colors hover:text-white ${
-                location === "/municipality" ? "text-white" : "text-primary-foreground/80"
-              }`}
-            >
-              Municipality
-            </Link>
-            <Link 
-              href="/retail" 
-              className={`transition-colors hover:text-white ${
-                location === "/retail" ? "text-white" : "text-primary-foreground/80"
-              }`}
-            >
-              Retail
-            </Link>
-          </nav>
         </div>
+        
+        {/* Navigation links in the center */}
+        <nav className="hidden lg:flex space-x-6 absolute left-1/2 transform -translate-x-1/2">
+          <Link 
+            href="/" 
+            className={`relative py-2 transition-all duration-300 ease-out hover:text-white group ${
+              location === "/" ? "text-white" : "text-primary-foreground/80"
+            }`}
+          >
+            Find Jobs
+            <span className={`absolute bottom-0 left-0 h-0.5 bg-white transition-all duration-300 ease-out ${
+              location === "/" ? "w-full" : "w-0 group-hover:w-full"
+            }`}></span>
+          </Link>
+          <Link 
+            href="/post-job" 
+            className={`relative py-2 transition-all duration-300 ease-out hover:text-white group ${
+              location === "/post-job" ? "text-white" : "text-primary-foreground/80"
+            }`}
+          >
+            Post Jobs
+            <span className={`absolute bottom-0 left-0 h-0.5 bg-white transition-all duration-300 ease-out ${
+              location === "/post-job" ? "w-full" : "w-0 group-hover:w-full"
+            }`}></span>
+          </Link>
+          <Link 
+            href="/government" 
+            className={`relative py-2 transition-all duration-300 ease-out hover:text-white group ${
+              location === "/government" ? "text-white" : "text-primary-foreground/80"
+            }`}
+          >
+            Government
+            <span className={`absolute bottom-0 left-0 h-0.5 bg-white transition-all duration-300 ease-out ${
+              location === "/government" ? "w-full" : "w-0 group-hover:w-full"
+            }`}></span>
+          </Link>
+          <Link 
+            href="/municipality" 
+            className={`relative py-2 transition-all duration-300 ease-out hover:text-white group ${
+              location === "/municipality" ? "text-white" : "text-primary-foreground/80"
+            }`}
+          >
+            Municipality
+            <span className={`absolute bottom-0 left-0 h-0.5 bg-white transition-all duration-300 ease-out ${
+              location === "/municipality" ? "w-full" : "w-0 group-hover:w-full"
+            }`}></span>
+          </Link>
+          <Link 
+            href="/retail" 
+            className={`relative py-2 transition-all duration-300 ease-out hover:text-white group ${
+              location === "/retail" ? "text-white" : "text-primary-foreground/80"
+            }`}
+          >
+            Retail
+            <span className={`absolute bottom-0 left-0 h-0.5 bg-white transition-all duration-300 ease-out ${
+              location === "/retail" ? "w-full" : "w-0 group-hover:w-full"
+            }`}></span>
+          </Link>
+        </nav>
 
         <div className="flex items-center space-x-4">
           <Button 

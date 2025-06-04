@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Megaphone } from "lucide-react";
 
@@ -76,10 +76,10 @@ export function JobFilters({ filters, onFiltersChange }: JobFiltersProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">Any salary</SelectItem>
-                  <SelectItem value="30-50">$30k - $50k</SelectItem>
-                  <SelectItem value="50-80">$50k - $80k</SelectItem>
-                  <SelectItem value="80-120">$80k - $120k</SelectItem>
-                  <SelectItem value="120+">$120k+</SelectItem>
+                  <SelectItem value="30-50">R30k - R50k</SelectItem>
+                  <SelectItem value="50-80">R50k - R80k</SelectItem>
+                  <SelectItem value="80-120">R80k - R120k</SelectItem>
+                  <SelectItem value="120+">R120k+</SelectItem>
                 </SelectContent>
               </Select>
             </div>

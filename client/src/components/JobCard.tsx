@@ -1,17 +1,18 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Briefcase, DollarSign, Clock, Heart } from "lucide-react";
-import { type Job } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatSalary, formatTimeAgo, truncateText } from "@/lib/utils";
+import { type Job } from "@shared/schema";
+import { Briefcase, Clock, DollarSign, Heart, MapPin } from "lucide-react";
 import { useState } from "react";
 
 interface JobCardProps {
   job: Job;
   onApply: (job: Job) => void;
+  onView: (job: Job) => void;
 }
 
-export function JobCard({ job, onApply }: JobCardProps) {
+export function JobCard({ job, onApply, onView }: JobCardProps) {
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSaveToggle = (e: React.MouseEvent) => {
@@ -20,7 +21,10 @@ export function JobCard({ job, onApply }: JobCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+    <Card 
+      className="hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onView(job)}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -51,7 +55,7 @@ export function JobCard({ job, onApply }: JobCardProps) {
               </span>
               <span className="flex items-center">
                 <DollarSign className="w-4 h-4 mr-1" />
-                {formatSalary(job.salary_min, job.salary_max)}
+                {formatSalary(job.salary_min ?? undefined, job.salary_max ?? undefined)}
               </span>
               <span className="flex items-center">
                 <Clock className="w-4 h-4 mr-1" />
