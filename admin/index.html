@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkBridge Admin - Job Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center">
+                    <i data-lucide="briefcase" class="h-8 w-8 text-blue-600 mr-3"></i>
+                    <h1 class="text-2xl font-bold text-gray-900">WorkBridge Admin</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500">Job Management Portal</span>
+                    <div id="connectionStatus" class="flex items-center">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                        <span class="text-xs text-gray-500">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Tabs -->
+        <div class="mb-8">
+            <nav class="flex space-x-8">
+                <button id="postJobTab" class="tab-button active flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                    <i data-lucide="plus-circle" class="h-4 w-4 mr-2"></i>
+                    Post New Job
+                </button>
+                <button id="manageJobsTab" class="tab-button flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                    <i data-lucide="list" class="h-4 w-4 mr-2"></i>
+                    Manage Jobs
+                </button>
+                <button id="applicationsTab" class="tab-button flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                    <i data-lucide="users" class="h-4 w-4 mr-2"></i>
+                    Applications
+                </button>
+            </nav>
+        </div>
+
+        <!-- Post Job Form -->
+        <div id="postJobPanel" class="tab-panel">
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-900">Post New Job</h2>
+                    <p class="text-sm text-gray-500">Fill in the details below to create a new job posting</p>
+                </div>
+                <form id="jobForm" class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Job Title -->
+                        <div class="md:col-span-2">
+                            <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Job Title *</label>
+                            <input type="text" id="title" name="title" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., Senior Software Developer">
+                        </div>
+
+                        <!-- Company -->
+                        <div>
+                            <label for="company" class="block text-sm font-medium text-gray-700 mb-2">Company *</label>
+                            <input type="text" id="company" name="company" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., WorkBridge Technologies">
+                        </div>
+
+                        <!-- Location -->
+                        <div>
+                            <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+                            <input type="text" id="location" name="location" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., Cape Town, South Africa">
+                        </div>
+
+                        <!-- Job Type -->
+                        <div>
+                            <label for="job_type" class="block text-sm font-medium text-gray-700 mb-2">Job Type *</label>
+                            <select id="job_type" name="job_type" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Select job type</option>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Remote">Remote</option>
+                                <option value="Internship">Internship</option>
+                            </select>
+                        </div>
+
+                        <!-- Salary Range -->
+                        <div>
+                            <label for="salary_min" class="block text-sm font-medium text-gray-700 mb-2">Minimum Salary (ZAR)</label>
+                            <input type="number" id="salary_min" name="salary_min"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., 25000">
+                        </div>
+
+                        <div>
+                            <label for="salary_max" class="block text-sm font-medium text-gray-700 mb-2">Maximum Salary (ZAR)</label>
+                            <input type="number" id="salary_max" name="salary_max"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., 35000">
+                        </div>
+
+                        <!-- Company Logo URL -->
+                        <div class="md:col-span-2">
+                            <label for="company_logo" class="block text-sm font-medium text-gray-700 mb-2">Company Logo URL</label>
+                            <input type="url" id="company_logo" name="company_logo"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="https://example.com/logo.png">
+                        </div>
+
+                        <!-- Skills -->
+                        <div class="md:col-span-2">
+                            <label for="skills" class="block text-sm font-medium text-gray-700 mb-2">Required Skills</label>
+                            <input type="text" id="skills" name="skills"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., JavaScript, React, Node.js (comma-separated)">
+                            <p class="text-xs text-gray-500 mt-1">Enter skills separated by commas</p>
+                        </div>
+
+                        <!-- Job Description -->
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Job Description *</label>
+                            <textarea id="description" name="description" rows="8" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Provide a detailed description of the job role, responsibilities, requirements, and any other relevant information..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" id="submitJobBtn"
+                            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="upload" class="h-4 w-4 mr-2"></i>
+                            Post Job
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Manage Jobs Panel -->
+        <div id="manageJobsPanel" class="tab-panel hidden">
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-900">Manage Jobs</h2>
+                    <p class="text-sm text-gray-500">View and manage all posted jobs</p>
+                </div>
+                <div class="p-6">
+                    <div id="jobsLoading" class="text-center py-8">
+                        <i data-lucide="loader-2" class="h-8 w-8 loading mx-auto mb-2 text-gray-400"></i>
+                        <p class="text-gray-500">Loading jobs...</p>
+                    </div>
+                    <div id="jobsList" class="hidden space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications Panel -->
+        <div id="applicationsPanel" class="tab-panel hidden">
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-900">Job Applications</h2>
+                    <p class="text-sm text-gray-500">View all job applications</p>
+                </div>
+                <div class="p-6">
+                    <div id="applicationsLoading" class="text-center py-8">
+                        <i data-lucide="loader-2" class="h-8 w-8 loading mx-auto mb-2 text-gray-400"></i>
+                        <p class="text-gray-500">Loading applications...</p>
+                    </div>
+                    <div id="applicationsList" class="hidden space-y-4"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="admin.js"></script>
+    
+    <!-- Initialize Lucide icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

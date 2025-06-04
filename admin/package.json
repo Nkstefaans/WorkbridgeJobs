@@ -1,0 +1,22 @@
+{
+  "name": "workbridge-admin",
+  "version": "1.0.0",
+  "description": "Web-based admin panel for WorkBridge Jobs platform",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "admin",
+    "jobs",
+    "firebase",
+    "workbridge"
+  ],
+  "author": "WorkBridge Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
