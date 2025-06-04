@@ -74,6 +74,75 @@ export class MemStorage implements IStorage {
         job_type: "Full-time",
         skills: ["Digital Marketing", "Analytics", "SEO", "Content Strategy"],
         company_logo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
+      },
+      // Government positions
+      {
+        title: "Federal IT Specialist",
+        company: "Department of Technology",
+        location: "Washington, DC",
+        description: "Support government technology infrastructure and digital transformation initiatives. Work on modernizing federal systems and ensuring cybersecurity compliance across government agencies.",
+        salary_min: 85000,
+        salary_max: 120000,
+        job_type: "Full-time",
+        skills: ["Government Security", "Network Administration", "Compliance", "Project Management"],
+        company_logo: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
+      },
+      {
+        title: "Policy Analyst",
+        company: "State Government Affairs",
+        location: "Sacramento, CA",
+        description: "Research and analyze policy proposals, prepare briefing materials, and support legislative processes. Collaborate with stakeholders to develop effective public policy solutions.",
+        salary_min: 65000,
+        salary_max: 85000,
+        job_type: "Full-time",
+        skills: ["Policy Research", "Data Analysis", "Public Administration", "Report Writing"],
+        company_logo: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
+      },
+      // Municipal positions
+      {
+        title: "City Planning Coordinator",
+        company: "City of Portland",
+        location: "Portland, OR",
+        description: "Support urban planning initiatives and community development projects. Review development proposals, conduct site visits, and facilitate public engagement in municipal planning processes.",
+        salary_min: 60000,
+        salary_max: 80000,
+        job_type: "Full-time",
+        skills: ["Urban Planning", "GIS", "Community Engagement", "Project Coordination"],
+        company_logo: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
+      },
+      {
+        title: "Municipal Engineer",
+        company: "City Public Works Department",
+        location: "Denver, CO",
+        description: "Design and oversee municipal infrastructure projects including roads, water systems, and public facilities. Ensure compliance with safety standards and environmental regulations.",
+        salary_min: 75000,
+        salary_max: 105000,
+        job_type: "Full-time",
+        skills: ["Civil Engineering", "CAD", "Project Management", "Municipal Infrastructure"],
+        company_logo: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
+      },
+      // Retail positions
+      {
+        title: "Store Manager",
+        company: "Downtown Retail Store",
+        location: "Chicago, IL",
+        description: "Lead daily retail operations, manage staff, and drive sales performance. Create exceptional customer service experiences and ensure store compliance with company standards.",
+        salary_min: 45000,
+        salary_max: 65000,
+        job_type: "Full-time",
+        skills: ["Retail Management", "Customer Service", "Team Leadership", "Sales"],
+        company_logo: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
+      },
+      {
+        title: "Sales Associate",
+        company: "Fashion Retail Chain",
+        location: "Miami, FL",
+        description: "Provide excellent customer service, assist with product selection, and maintain store presentation. Work in a fast-paced retail environment with opportunities for advancement.",
+        salary_min: 28000,
+        salary_max: 35000,
+        job_type: "Part-time",
+        skills: ["Customer Service", "Sales", "Product Knowledge", "Cash Handling"],
+        company_logo: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?ixlib=rb-4.0.3&auto=format&fit=crop&w=60&h=60"
       }
     ];
 

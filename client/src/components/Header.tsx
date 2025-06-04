@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Briefcase, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 
 export function Header() {
   const [location] = useLocation();
@@ -13,11 +13,10 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center space-x-8">
           <Link href="/" className="flex items-center space-x-2">
-            <Briefcase className="h-8 w-8" />
-            <span className="text-2xl font-bold">Workbridge</span>
+            <span className="text-2xl font-bold tracking-wider">WORK BRIDGE</span>
           </Link>
           
-          <nav className="hidden md:flex space-x-6">
+          <nav className="hidden lg:flex space-x-6">
             <Link 
               href="/" 
               className={`transition-colors hover:text-white ${
@@ -35,12 +34,28 @@ export function Header() {
               Post Jobs
             </Link>
             <Link 
-              href="/companies" 
+              href="/government" 
               className={`transition-colors hover:text-white ${
-                location === "/companies" ? "text-white" : "text-primary-foreground/80"
+                location === "/government" ? "text-white" : "text-primary-foreground/80"
               }`}
             >
-              Companies
+              Government
+            </Link>
+            <Link 
+              href="/municipality" 
+              className={`transition-colors hover:text-white ${
+                location === "/municipality" ? "text-white" : "text-primary-foreground/80"
+              }`}
+            >
+              Municipality
+            </Link>
+            <Link 
+              href="/retail" 
+              className={`transition-colors hover:text-white ${
+                location === "/retail" ? "text-white" : "text-primary-foreground/80"
+              }`}
+            >
+              Retail
             </Link>
           </nav>
         </div>
@@ -60,7 +75,7 @@ export function Header() {
           
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="lg:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -81,11 +96,25 @@ export function Header() {
                   Post Jobs
                 </Link>
                 <Link 
-                  href="/companies" 
+                  href="/government" 
                   className="text-lg font-medium"
                   onClick={() => setIsOpen(false)}
                 >
-                  Companies
+                  Government
+                </Link>
+                <Link 
+                  href="/municipality" 
+                  className="text-lg font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Municipality
+                </Link>
+                <Link 
+                  href="/retail" 
+                  className="text-lg font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Retail
                 </Link>
                 <Button className="w-full mt-4">Sign In</Button>
               </nav>

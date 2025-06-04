@@ -1,5 +1,3 @@
-import { Briefcase } from "lucide-react";
-
 export function Footer() {
   return (
     <footer className="bg-primary text-primary-foreground py-12 mt-16">
@@ -7,8 +5,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <Briefcase className="h-8 w-8" />
-              <span className="text-2xl font-bold">Workbridge</span>
+              <span className="text-2xl font-bold tracking-wider">WORK BRIDGE</span>
             </div>
             <p className="text-primary-foreground/80">
               Connecting talent with opportunity, building bridges to your career success.
