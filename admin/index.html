@@ -6,6 +6,10 @@
     <title>WorkBridge Admin - Job Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- PDF.js for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
     <style>
         .loading {
             animation: spin 1s linear infinite;
@@ -17,43 +21,137 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-6">
-                <div class="flex items-center">
-                    <i data-lucide="briefcase" class="h-8 w-8 text-blue-600 mr-3"></i>
-                    <h1 class="text-2xl font-bold text-gray-900">WorkBridge Admin</h1>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <div class="mx-auto h-12 w-12 flex items-center justify-center mb-4">
+                <i data-lucide="loader-2" class="h-8 w-8 text-blue-600 loading"></i>
+            </div>
+            <p class="text-gray-600">Loading admin panel...</p>
+        </div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="hidden min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <div>
+                <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
+                    <i data-lucide="shield-check" class="h-8 w-8 text-blue-600"></i>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-500">Job Management Portal</span>
-                    <div id="connectionStatus" class="flex items-center">
-                        <div class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
-                        <span class="text-xs text-gray-500">Connecting...</span>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                    Admin Access Required
+                </h2>
+                <p class="mt-2 text-center text-sm text-gray-600">
+                    Sign in to access the WorkBridge Admin Panel
+                </p>
+            </div>
+            
+            <form id="loginForm" class="mt-8 space-y-6">
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <label for="loginEmail" class="sr-only">Email address</label>
+                        <input id="loginEmail" name="email" type="email" autocomplete="email" required
+                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                            placeholder="Email address">
+                    </div>
+                    <div>
+                        <label for="loginPassword" class="sr-only">Password</label>
+                        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required
+                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                            placeholder="Password">
+                    </div>
+                </div>
+
+                <div id="loginError" class="hidden rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <i data-lucide="alert-circle" class="h-5 w-5 text-red-400"></i>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Authentication Failed
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p id="loginErrorMessage"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" id="loginBtn"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i data-lucide="lock" class="h-5 w-5 text-blue-500 group-hover:text-blue-400"></i>
+                        </span>
+                        Sign in
+                    </button>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-xs text-gray-500">
+                        Only authorized administrators can access this panel
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel (Hidden by default) -->
+    <div id="adminPanel" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <i data-lucide="briefcase" class="h-8 w-8 text-blue-600 mr-3"></i>
+                        <h1 class="text-2xl font-bold text-gray-900">WorkBridge Admin</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-500">Job Management Portal</span>
+                        <div id="userInfo" class="flex items-center space-x-2">
+                            <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="user" class="h-4 w-4 text-blue-600"></i>
+                            </div>
+                            <span id="userEmail" class="text-xs text-gray-600"></span>
+                        </div>
+                        <div id="connectionStatus" class="flex items-center">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                            <span class="text-xs text-gray-500">Connecting...</span>
+                        </div>
+                        <div id="sessionStatus" class="flex items-center">
+                            <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                            <span class="text-xs text-green-600">Session Active</span>
+                        </div>
+                        <button id="logoutBtn" class="text-sm text-red-600 hover:text-red-800 flex items-center">
+                            <i data-lucide="log-out" class="h-4 w-4 mr-1"></i>
+                            Logout
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-    </header>
+            </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Tabs -->
-        <div class="mb-8">
-            <nav class="flex space-x-8">
-                <button id="postJobTab" class="tab-button active flex items-center px-3 py-2 text-sm font-medium rounded-md">
-                    <i data-lucide="plus-circle" class="h-4 w-4 mr-2"></i>
-                    Post New Job
-                </button>
-                <button id="manageJobsTab" class="tab-button flex items-center px-3 py-2 text-sm font-medium rounded-md">
-                    <i data-lucide="list" class="h-4 w-4 mr-2"></i>
-                    Manage Jobs
-                </button>
-                <button id="applicationsTab" class="tab-button flex items-center px-3 py-2 text-sm font-medium rounded-md">
-                    <i data-lucide="users" class="h-4 w-4 mr-2"></i>
-                    Applications
-                </button>
-            </nav>
-        </div>
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Tabs -->
+            <div class="mb-8">
+                <nav class="flex space-x-8">
+                    <button id="postJobTab" class="tab-button active flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                        <i data-lucide="plus-circle" class="h-4 w-4 mr-2"></i>
+                        Post New Job
+                    </button>
+                    <button id="extractJobsTab" class="tab-button flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                        <i data-lucide="scan-text" class="h-4 w-4 mr-2"></i>
+                        Auto Extract Jobs
+                    </button>
+                    <button id="manageJobsTab" class="tab-button flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                        <i data-lucide="list" class="h-4 w-4 mr-2"></i>
+                        Manage Jobs
+                    </button>
+                    <button id="applicationsTab" class="tab-button flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                        <i data-lucide="users" class="h-4 w-4 mr-2"></i>
+                        Applications
+                    </button>
+                </nav>
+            </div>
 
         <!-- Post Job Form -->
         <div id="postJobPanel" class="tab-panel">
@@ -155,6 +253,72 @@
             </div>
         </div>
 
+        <!-- Auto Extract Jobs Panel -->
+        <div id="extractJobsPanel" class="tab-panel hidden">
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-medium text-gray-900">Auto Extract Jobs</h2>
+                    <p class="text-sm text-gray-500">Upload PDF files or images to automatically extract job information</p>
+                </div>
+                
+                <!-- File Upload Section -->
+                <div class="p-6">
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Job Documents</label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                            <div class="space-y-1 text-center">
+                                <div class="mx-auto h-12 w-12 text-gray-400">
+                                    <i data-lucide="upload" class="h-12 w-12"></i>
+                                </div>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="jobFileUpload" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                        <span>Upload files</span>
+                                        <input id="jobFileUpload" name="jobFileUpload" type="file" class="sr-only" multiple 
+                                               accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp">
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PDF, JPG, PNG up to 10MB each</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Processing Status -->
+                    <div id="extractionStatus" class="hidden mb-6">
+                        <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                            <div class="flex items-center">
+                                <i data-lucide="loader-2" class="h-5 w-5 text-blue-600 mr-3 loading"></i>
+                                <div>
+                                    <h4 class="text-sm font-medium text-blue-900">Processing Files</h4>
+                                    <p class="text-sm text-blue-700" id="extractionStatusText">Extracting job information from uploaded files...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extracted Jobs Review Section -->
+                    <div id="extractedJobsSection" class="hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Extracted Jobs for Review</h3>
+                            <div class="flex space-x-2">
+                                <button id="approveAllBtn" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                    <i data-lucide="check-circle" class="h-4 w-4 mr-1"></i>
+                                    Approve All
+                                </button>
+                                <button id="rejectAllBtn" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    <i data-lucide="x-circle" class="h-4 w-4 mr-1"></i>
+                                    Reject All
+                                </button>
+                            </div>
+                        </div>
+                        <div id="extractedJobsList" class="space-y-4">
+                            <!-- Extracted jobs will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Manage Jobs Panel -->
         <div id="manageJobsPanel" class="tab-panel hidden">
             <div class="bg-white shadow rounded-lg">
@@ -189,6 +353,7 @@
             </div>
         </div>
     </main>
+    </div>
 
     <!-- Success/Error Messages -->
     <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>

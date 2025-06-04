@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auth Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Firebase Authentication Test</h1>
+    
+    <div id="status" class="status info">Initializing Firebase...</div>
+    
+    <div id="loginSection">
+        <h3>Login Test</h3>
+        <input type="email" id="email" placeholder="Email" value="nkstefaans1@gmail.com">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testLogout()">Test Logout</button>
+    </div>
+    
+    <div id="userInfo">
+        <h3>Current User:</h3>
+        <div id="currentUser">Not logged in</div>
+    </div>
+
+    <div id="authLog">
+        <h3>Authentication Log:</h3>
+        <div id="logOutput" style="background: #f5f5f5; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+        import {
+            getAuth,
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            signOut,
+            browserLocalPersistence,
+            setPersistence
+        } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7tV28HxBcxU6nKMgqZpAe5RnyC-jvJU8",
+            authDomain: "workbridge-273ad.firebaseapp.com",
+            projectId: "workbridge-273ad",
+            storageBucket: "workbridge-273ad.firebasestorage.app",
+            messagingSenderId: "1092375078581",
+            appId: "1:1092375078581:web:9d9c4d58996ede2da7c0fc",
+            measurementId: "G-T8DZ5Z73Z9"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Set persistence
+        setPersistence(auth, browserLocalPersistence).then(() => {
+            log('✅ Persistence set to browserLocalPersistence');
+        }).catch((error) => {
+            log('❌ Error setting persistence: ' + error.message);
+        });
+
+        // Auth state listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                log('🔄 Auth state changed: User logged in - ' + user.email);
+                document.getElementById('currentUser').innerHTML = `
+                    <strong>Email:</strong> ${user.email}<br>
+                    <strong>UID:</strong> ${user.uid}<br>
+                    <strong>Email Verified:</strong> ${user.emailVerified}<br>
+                    <strong>Last Sign In:</strong> ${user.metadata.lastSignInTime}
+                `;
+                setStatus('Logged in as: ' + user.email, 'success');
+            } else {
+                log('🔄 Auth state changed: User logged out');
+                document.getElementById('currentUser').textContent = 'Not logged in';
+                setStatus('Not logged in', 'info');
+            }
+        });
+
+        // Global functions
+        window.testLogin = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                setStatus('Please enter email and password', 'error');
+                return;
+            }
+
+            try {
+                log('🔑 Attempting login for: ' + email);
+                setStatus('Logging in...', 'info');
+                
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                log('✅ Login successful: ' + userCredential.user.email);
+                setStatus('Login successful!', 'success');
+                
+            } catch (error) {
+                log('❌ Login failed: ' + error.code + ' - ' + error.message);
+                setStatus('Login failed: ' + error.message, 'error');
+            }
+        };
+
+        window.testLogout = async function() {
+            try {
+                log('🚪 Attempting logout');
+                setStatus('Logging out...', 'info');
+                
+                await signOut(auth);
+                log('✅ Logout successful');
+                setStatus('Logout successful!', 'success');
+                
+            } catch (error) {
+                log('❌ Logout failed: ' + error.message);
+                setStatus('Logout failed: ' + error.message, 'error');
+            }
+        };
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logOutput = document.getElementById('logOutput');
+            logOutput.innerHTML += `[${timestamp}] ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(message);
+        }
+
+        function setStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        // Initial status
+        log('🚀 Firebase Auth Test initialized');
+        setStatus('Firebase initialized - Ready for testing', 'info');
+    </script>
+</body>
+</html>

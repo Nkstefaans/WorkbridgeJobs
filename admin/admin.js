@@ -1,7 +1,15 @@
 // Firebase Admin Panel for WorkBridge Jobs
-// This file handles job posting, management, and applications viewing
+// This file handles authentication, job posting, management, and applications viewing
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+import {
+    browserLocalPersistence,
+    getAuth,
+    onAuthStateChanged,
+    setPersistence,
+    signInWithEmailAndPassword,
+    signOut
+} from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
 import {
     addDoc,
     collection,
@@ -28,6 +36,32 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Set authentication persistence to local (survives browser restarts)
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error('Error setting auth persistence:', error);
+});
+
+// ADMIN CONFIGURATION - Add your email address here
+const ADMIN_EMAILS = [
+    'nkstefaans1@gmail.com'  // Authorized admin email
+];
+
+// SESSION MANAGEMENT CONFIGURATION
+const SESSION_CONFIG = {
+    idleTimeoutMinutes: 30,        // Auto-logout after 30 minutes of inactivity
+    warningTimeoutMinutes: 25,     // Show warning 5 minutes before logout
+    activityCheckInterval: 60000,  // Check activity every minute
+    tokenRefreshInterval: 300000   // Refresh token every 5 minutes
+};
+
+// Activity tracking variables
+let lastActivityTime = Date.now();
+let sessionTimer = null;
+let warningTimer = null;
+let activityCheckTimer = null;
+let tokenRefreshTimer = null;
 
 // Collections
 const jobsCollection = collection(db, 'jobs');
@@ -36,31 +70,367 @@ const applicationsCollection = collection(db, 'applications');
 // Global state
 let currentJobs = [];
 let currentApplications = [];
+let currentUser = null;
 
-// DOM Elements
+// DOM Elements - Authentication
+const loadingScreen = document.getElementById('loadingScreen');
+const loginScreen = document.getElementById('loginScreen');
+const adminPanel = document.getElementById('adminPanel');
+const loginForm = document.getElementById('loginForm');
+const loginBtn = document.getElementById('loginBtn');
+const loginError = document.getElementById('loginError');
+const loginErrorMessage = document.getElementById('loginErrorMessage');
+const logoutBtn = document.getElementById('logoutBtn');
+const userEmail = document.getElementById('userEmail');
+
+// DOM Elements - Admin Panel
 const tabs = {
     postJob: document.getElementById('postJobTab'),
+    extractJobs: document.getElementById('extractJobsTab'),
     manageJobs: document.getElementById('manageJobsTab'),
     applications: document.getElementById('applicationsTab')
 };
 
 const panels = {
     postJob: document.getElementById('postJobPanel'),
+    extractJobs: document.getElementById('extractJobsPanel'),
     manageJobs: document.getElementById('manageJobsPanel'),
     applications: document.getElementById('applicationsPanel')
 };
 
 const jobForm = document.getElementById('jobForm');
 const connectionStatus = document.getElementById('connectionStatus');
+const sessionStatus = document.getElementById('sessionStatus');
 
 // Initialize the admin panel
 document.addEventListener('DOMContentLoaded', async () => {
+    setupAuthenticationListeners();
+    // Don't initialize auth state immediately - let onAuthStateChanged handle it
+    // Wait for Firebase Auth to determine current state
+    console.log('Admin panel loaded, waiting for auth state...');
+});
+
+// Authentication Functions
+function setupAuthenticationListeners() {
+    // Login form submission
+    loginForm.addEventListener('submit', handleLogin);
+    
+    // Logout button
+    logoutBtn.addEventListener('click', handleLogout);
+    
+    // Auth state change listener with proper handling
+    onAuthStateChanged(auth, (user) => {
+        console.log('Auth state changed:', user ? user.email : 'No user');
+        
+        // Hide loading screen once we have auth state
+        hideLoadingScreen();
+        
+        if (user && isAuthorizedUser(user.email)) {
+            console.log('Authorized user detected, showing admin panel');
+            currentUser = user;
+            showAdminPanel();
+        } else if (user && !isAuthorizedUser(user.email)) {
+            // User is logged in but not authorized
+            console.log('Unauthorized user detected, signing out');
+            showLoginError('Access denied. You are not authorized to access this admin panel.');
+            signOut(auth);
+        } else {
+            console.log('No user or signed out, showing login screen');
+            currentUser = null;
+            showLoginScreen();
+        }
+    });
+}
+
+function isAuthorizedUser(email) {
+    return ADMIN_EMAILS.includes(email);
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    // Check if email is in whitelist first
+    if (!isAuthorizedUser(email)) {
+        showLoginError('Access denied. This email is not authorized to access the admin panel.');
+        return;
+    }
+    
+    try {
+        // Show loading state
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<i data-lucide="loader-2" class="h-4 w-4 mr-2 loading"></i>Signing in...';
+        hideLoginError();
+        
+        // Sign in with Firebase Auth
+        await signInWithEmailAndPassword(auth, email, password);
+        
+        // Success will be handled by onAuthStateChanged listener
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        let errorMessage = 'Login failed. Please check your credentials.';
+        
+        switch (error.code) {
+            case 'auth/user-not-found':
+                errorMessage = 'No account found with this email address.';
+                break;
+            case 'auth/wrong-password':
+                errorMessage = 'Incorrect password. Please try again.';
+                break;
+            case 'auth/invalid-email':
+                errorMessage = 'Invalid email address format.';
+                break;
+            case 'auth/too-many-requests':
+                errorMessage = 'Too many failed attempts. Please try again later.';
+                break;
+            case 'auth/network-request-failed':
+                errorMessage = 'Network error. Please check your connection.';
+                break;
+        }
+        
+        showLoginError(errorMessage);
+    } finally {
+        // Reset button
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<span class="absolute left-0 inset-y-0 flex items-center pl-3"><i data-lucide="lock" class="h-5 w-5 text-blue-500 group-hover:text-blue-400"></i></span>Sign in';
+        lucide.createIcons();
+    }
+}
+
+async function handleLogout() {
+    try {
+        await signOut(auth);
+        showMessage('Successfully logged out', 'success');
+    } catch (error) {
+        console.error('Logout error:', error);
+        showMessage('Error logging out', 'error');
+    }
+}
+
+function hideLoadingScreen() {
+    loadingScreen.classList.add('hidden');
+}
+
+function showLoginScreen() {
+    hideLoadingScreen();
+    loginScreen.classList.remove('hidden');
+    adminPanel.classList.add('hidden');
+    document.title = 'WorkBridge Admin - Login';
+    
+    // Clear session management when showing login screen
+    clearAllTimers();
+    hideSessionWarning();
+}
+
+function showAdminPanel() {
+    hideLoadingScreen();
+    loginScreen.classList.add('hidden');
+    adminPanel.classList.remove('hidden');
+    document.title = 'WorkBridge Admin - Job Management';
+    
+    // Update user info
+    if (currentUser) {
+        userEmail.textContent = currentUser.email;
+    }
+    
+    // Initialize admin panel
     initializeTabs();
     setupEventListeners();
-    await testFirebaseConnection();
+    initializeJobExtraction(); // Initialize job extraction functionality
+    testFirebaseConnection();
     loadJobs();
     loadApplications();
-});
+    
+    // Initialize session management
+    initializeSessionManagement();
+}
+
+function showLoginError(message) {
+    loginErrorMessage.textContent = message;
+    loginError.classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function hideLoginError() {
+    loginError.classList.add('hidden');
+}
+
+// SESSION MANAGEMENT FUNCTIONS
+function initializeSessionManagement() {
+    // Track user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    activityEvents.forEach(event => {
+        document.addEventListener(event, updateLastActivity, true);
+    });
+    
+    // Start activity monitoring
+    startActivityMonitoring();
+    
+    // Update session status
+    updateSessionStatus('active', 'Session Active', 'green');
+    
+    console.log('✅ Session management initialized');
+}
+
+function updateLastActivity() {
+    lastActivityTime = Date.now();
+    
+    // Clear any existing warning
+    hideSessionWarning();
+    
+    // Reset timers
+    resetSessionTimers();
+}
+
+function startActivityMonitoring() {
+    // Check activity every minute
+    activityCheckTimer = setInterval(() => {
+        const timeSinceActivity = Date.now() - lastActivityTime;
+        const idleTimeoutMs = SESSION_CONFIG.idleTimeoutMinutes * 60 * 1000;
+        const warningTimeoutMs = SESSION_CONFIG.warningTimeoutMinutes * 60 * 1000;
+        
+        if (timeSinceActivity >= idleTimeoutMs) {
+            // Auto-logout due to inactivity
+            console.log('🕒 Session expired due to inactivity');
+            handleSessionExpired();
+        } else if (timeSinceActivity >= warningTimeoutMs) {
+            // Show warning
+            showSessionWarning();
+        }
+    }, SESSION_CONFIG.activityCheckInterval);
+    
+    // Start token refresh timer
+    startTokenRefresh();
+}
+
+function startTokenRefresh() {
+    tokenRefreshTimer = setInterval(async () => {
+        if (currentUser) {
+            try {
+                // Force token refresh
+                await currentUser.getIdToken(true);
+                console.log('🔄 Authentication token refreshed');
+            } catch (error) {
+                console.error('❌ Token refresh failed:', error);
+                // Don't auto-logout on token refresh failure, let user continue
+            }
+        }
+    }, SESSION_CONFIG.tokenRefreshInterval);
+}
+
+function resetSessionTimers() {
+    // Clear existing timers
+    if (sessionTimer) clearTimeout(sessionTimer);
+    if (warningTimer) clearTimeout(warningTimer);
+    
+    const idleTimeoutMs = SESSION_CONFIG.idleTimeoutMinutes * 60 * 1000;
+    const warningTimeoutMs = SESSION_CONFIG.warningTimeoutMinutes * 60 * 1000;
+    
+    // Set new warning timer
+    warningTimer = setTimeout(() => {
+        showSessionWarning();
+    }, warningTimeoutMs);
+    
+    // Set new session timeout
+    sessionTimer = setTimeout(() => {
+        handleSessionExpired();
+    }, idleTimeoutMs);
+}
+
+function showSessionWarning() {
+    const timeLeft = SESSION_CONFIG.idleTimeoutMinutes - SESSION_CONFIG.warningTimeoutMinutes;
+    
+    // Update session status to warning
+    updateSessionStatus('warning', `Expires in ${timeLeft}min`, 'yellow');
+    
+    const warningHtml = `
+        <div id="sessionWarning" class="fixed top-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow-lg z-50 max-w-sm">
+            <div class="flex items-center">
+                <i data-lucide="clock" class="h-5 w-5 mr-2"></i>
+                <div>
+                    <h4 class="font-medium">Session Warning</h4>
+                    <p class="text-sm">You'll be logged out in ${timeLeft} minutes due to inactivity.</p>
+                    <button onclick="extendSession()" class="mt-2 text-sm bg-yellow-200 hover:bg-yellow-300 px-3 py-1 rounded">
+                        Stay Logged In
+                    </button>
+                </div>
+                <button onclick="hideSessionWarning()" class="ml-auto text-yellow-500 hover:text-yellow-700">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing warning
+    hideSessionWarning();
+    
+    // Add new warning
+    document.body.insertAdjacentHTML('beforeend', warningHtml);
+    lucide.createIcons();
+    
+    console.log(`⚠️ Session warning displayed - ${timeLeft} minutes remaining`);
+}
+
+function hideSessionWarning() {
+    const warning = document.getElementById('sessionWarning');
+    if (warning) {
+        warning.remove();
+    }
+    
+    // Reset session status to active if user is still logged in
+    if (currentUser) {
+        updateSessionStatus('active', 'Session Active', 'green');
+    }
+}
+
+function handleSessionExpired() {
+    console.log('🕒 Session expired - logging out user');
+    
+    // Clear all timers
+    clearAllTimers();
+    
+    // Show expiration message
+    showMessage('Your session has expired due to inactivity. Please log in again.', 'info');
+    
+    // Sign out user
+    signOut(auth);
+}
+
+function clearAllTimers() {
+    if (sessionTimer) clearTimeout(sessionTimer);
+    if (warningTimer) clearTimeout(warningTimer);
+    if (activityCheckTimer) clearInterval(activityCheckTimer);
+    if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+    
+    sessionTimer = null;
+    warningTimer = null;
+    activityCheckTimer = null;
+    tokenRefreshTimer = null;
+}
+
+// Global function for extending session
+window.extendSession = function() {
+    updateLastActivity();
+    hideSessionWarning();
+    console.log('✅ Session extended by user action');
+};
+
+function updateSessionStatus(status, message, color = 'green') {
+    if (!sessionStatus) return;
+    
+    const statusDot = sessionStatus.querySelector('div');
+    const statusText = sessionStatus.querySelector('span');
+    
+    if (statusDot && statusText) {
+        statusDot.className = `w-2 h-2 bg-${color}-400 rounded-full mr-2`;
+        statusText.textContent = message;
+        statusText.className = `text-xs text-${color}-600`;
+    }
+}
 
 // Tab Management
 function initializeTabs() {
@@ -535,6 +905,750 @@ window.viewApplicationDetails = function(appId) {
     document.body.insertAdjacentHTML('beforeend', modal);
     lucide.createIcons();
 };
+
+// ========================================
+// JOB EXTRACTION FUNCTIONALITY
+// ========================================
+
+// Store extracted jobs temporarily for review
+let extractedJobs = [];
+
+// Initialize job extraction functionality
+function initializeJobExtraction() {
+    const fileUpload = document.getElementById('jobFileUpload');
+    const dropZone = fileUpload?.closest('.border-dashed');
+    const approveAllBtn = document.getElementById('approveAllBtn');
+    const rejectAllBtn = document.getElementById('rejectAllBtn');
+
+    if (!fileUpload) return;
+
+    // File upload change event
+    fileUpload.addEventListener('change', handleFileUpload);
+
+    // Drag and drop functionality
+    if (dropZone) {
+        dropZone.addEventListener('dragover', handleDragOver);
+        dropZone.addEventListener('dragleave', handleDragLeave);
+        dropZone.addEventListener('drop', handleFileDrop);
+    }
+
+    // Bulk action buttons
+    if (approveAllBtn) approveAllBtn.addEventListener('click', approveAllExtractedJobs);
+    if (rejectAllBtn) rejectAllBtn.addEventListener('click', rejectAllExtractedJobs);
+}
+
+// Handle file upload
+async function handleFileUpload(event) {
+    const files = Array.from(event.target.files);
+    await processUploadedFiles(files);
+}
+
+// Handle drag over
+function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+}
+
+// Handle drag leave
+function handleDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+}
+
+// Handle file drop
+async function handleFileDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const dropZone = event.currentTarget;
+    dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+    
+    const files = Array.from(event.dataTransfer.files);
+    await processUploadedFiles(files);
+}
+
+// Process uploaded files
+async function processUploadedFiles(files) {
+    if (files.length === 0) return;
+
+    // Validate files
+    const validFiles = files.filter(file => {
+        const isValidType = file.type.includes('pdf') || file.type.includes('image');
+        const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
+        return isValidType && isValidSize;
+    });
+
+    if (validFiles.length === 0) {
+        showMessage('Please select valid PDF or image files (max 10MB each)', 'error');
+        return;
+    }
+
+    // Show processing status
+    showExtractionStatus(true, `Processing ${validFiles.length} file(s)...`);
+    
+    try {
+        // Process each file
+        const extractionPromises = validFiles.map(file => extractJobFromFile(file));
+        const results = await Promise.all(extractionPromises);
+        
+        // Filter successful extractions
+        const successfulExtractions = results.filter(result => result !== null);
+        
+        if (successfulExtractions.length > 0) {
+            extractedJobs = [...extractedJobs, ...successfulExtractions];
+            displayExtractedJobs();
+            showMessage(`Successfully extracted ${successfulExtractions.length} job(s) for review`, 'success');
+        } else {
+            showMessage('No job information could be extracted from the uploaded files', 'warning');
+        }
+        
+    } catch (error) {
+        console.error('Error processing files:', error);
+        showMessage('Error processing files. Please try again.', 'error');
+    } finally {
+        showExtractionStatus(false);
+        // Clear file input
+        document.getElementById('jobFileUpload').value = '';
+    }
+}
+
+// Extract job information from a single file
+async function extractJobFromFile(file) {
+    try {
+        let extractedText = '';
+        
+        if (file.type.includes('pdf')) {
+            extractedText = await extractTextFromPDF(file);
+        } else if (file.type.includes('image')) {
+            extractedText = await extractTextFromImage(file);
+        }
+        
+        if (!extractedText.trim()) {
+            console.warn(`No text extracted from file: ${file.name}`);
+            return null;
+        }
+        
+        // Use AI to parse the extracted text into job data
+        const jobData = await parseJobDataWithAI(extractedText, file.name);
+        
+        if (jobData) {
+            return {
+                id: generateTempId(),
+                fileName: file.name,
+                extractedText: extractedText,
+                ...jobData,
+                status: 'pending' // pending, approved, rejected
+            };
+        }
+        
+        return null;
+    } catch (error) {
+        console.error(`Error extracting from file ${file.name}:`, error);
+        return null;
+    }
+}
+
+// Extract text from PDF using PDF.js
+async function extractTextFromPDF(file) {
+    try {
+        console.log(`Extracting text from PDF: ${file.name}`);
+        
+        // Configure PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        } else {
+            console.error('PDF.js library not loaded');
+            return getSampleJobText(); // Fallback to sample
+        }
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        
+        let fullText = '';
+        
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            
+            // Combine text items into a single string
+            const pageText = textContent.items
+                .map(item => item.str)
+                .join(' ');
+            
+            fullText += pageText + '\n';
+        }
+        
+        console.log(`Extracted ${fullText.length} characters from PDF`);
+        return fullText.trim();
+        
+    } catch (error) {
+        console.error('Error extracting PDF text:', error);
+        console.log('Falling back to sample data for demo');
+        return getSampleJobText(); // Fallback for demo
+    }
+}
+
+// Extract text from image using OCR
+async function extractTextFromImage(file) {
+    try {
+        console.log(`Extracting text from image: ${file.name}`);
+        
+        if (typeof Tesseract === 'undefined') {
+            console.error('Tesseract.js library not loaded');
+            return getSampleJobText(); // Fallback to sample
+        }
+        
+        // Create an image URL for Tesseract
+        const imageUrl = URL.createObjectURL(file);
+        
+        // Update extraction status
+        showExtractionStatus(true, `Processing image with OCR: ${file.name}...`);
+        
+        // Use Tesseract.js to extract text
+        const { data: { text } } = await Tesseract.recognize(imageUrl, 'eng', {
+            logger: m => {
+                if (m.status === 'recognizing text') {
+                    const progress = Math.round(m.progress * 100);
+                    showExtractionStatus(true, `OCR Progress: ${progress}% - ${file.name}`);
+                }
+            }
+        });
+        
+        // Clean up the object URL
+        URL.revokeObjectURL(imageUrl);
+        
+        console.log(`Extracted ${text.length} characters from image`);
+        return text.trim();
+        
+    } catch (error) {
+        console.error('Error extracting image text:', error);
+        console.log('Falling back to sample data for demo');
+        return getSampleJobText(); // Fallback for demo
+    }
+}
+
+// Parse job data using AI (simulated)
+async function parseJobDataWithAI(text, fileName) {
+    try {
+        // Simulate AI processing delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // For demo purposes, we'll extract job data using pattern matching
+        // In production, you'd use OpenAI GPT, Google AI, or similar
+        const jobData = extractJobDataFromText(text);
+        
+        return jobData;
+    } catch (error) {
+        console.error('Error parsing job data with AI:', error);
+        return null;
+    }
+}
+
+// Extract job data from text using enhanced pattern matching
+function extractJobDataFromText(text) {
+    const lowerText = text.toLowerCase();
+    
+    // Enhanced pattern matching
+    const title = extractTitle(text) || 'Extracted Job Position';
+    const company = extractCompany(text) || 'Company Name';
+    const location = extractLocation(text) || 'Location';
+    const jobType = extractJobType(lowerText) || 'full-time';
+    const salary = extractSalary(text);
+    const skills = extractSkills(lowerText);
+    
+    // Try to get a meaningful description
+    const description = extractDescription(text) || text.substring(0, 500) + '...';
+    
+    return {
+        title,
+        company,
+        location,
+        job_type: jobType,
+        salary_min: salary.min,
+        salary_max: salary.max,
+        company_logo: '', // Would be extracted separately or added manually
+        skills: skills.join(', '),
+        description
+    };
+}
+
+// Enhanced helper functions for text extraction
+function extractTitle(text) {
+    const titlePatterns = [
+        /(?:position|post|job\s*title|role|vacancy|opportunity):\s*([^\n\r,]+)/i,
+        /(?:job|position|role)\s*(?:title|name)?\s*:\s*([^\n\r,]+)/i,
+        /(?:we\s*are\s*(?:looking\s*for|seeking|hiring)\s*(?:a|an)?\s*)([^\n\r,]+?)(?:\s*to|\s*for|\s*with|\s*in)/i,
+        /(?:^|\n)([A-Z][A-Z\s]{2,30})(?:\s*-|\s*\(|\s*at|\s*$)/m, // All caps titles
+        /(?:^|\n)([A-Z][a-z\s]{5,50})(?:\s*-|\s*\(|\s*at|\s*$|\s*position)/m // Title case
+    ];
+    
+    for (const pattern of titlePatterns) {
+        const match = text.match(pattern);
+        if (match && match[1] && match[1].trim().length > 2) {
+            let title = match[1].trim();
+            // Clean up the title
+            title = title.replace(/[:\-\(\)]/g, '').trim();
+            if (title.length > 3 && title.length < 100) {
+                return title;
+            }
+        }
+    }
+    return null;
+}
+
+function extractCompany(text) {
+    const companyPatterns = [
+        /(?:company|employer|organization|firm):\s*([^\n\r,]+)/i,
+        /(?:at|with|for)\s+([A-Z][a-zA-Z\s&.]{2,50})(?:\s*(?:is|seeks|requires|offers))/i,
+        /([A-Z][a-zA-Z\s&.]{2,50})\s*(?:is\s*(?:looking|seeking|hiring))/i,
+        /(?:^|\n)([A-Z][a-zA-Z\s&.]{3,50})\s*(?:job|career|vacancy|position)/im
+    ];
+    
+    for (const pattern of companyPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1] && match[1].trim().length > 2) {
+            let company = match[1].trim();
+            // Clean up common suffixes/prefixes
+            company = company.replace(/\b(?:jobs?|careers?|vacancies|positions?|hiring|seeking)\b/gi, '').trim();
+            if (company.length > 2 && company.length < 100) {
+                return company;
+            }
+        }
+    }
+    return null;
+}
+
+function extractLocation(text) {
+    const locationPatterns = [
+        /(?:location|address|based\s*in|situated\s*in):\s*([^\n\r,]+)/i,
+        /(?:in|at)\s*(johannesburg|cape\s*town|durban|pretoria|port\s*elizabeth|bloemfontein|sandton|rosebank|midrand|centurion|bellville|parow|claremont|wynberg|brackenfell|goodwood|milnerton|tableview|somerset\s*west|strand|stellenbosch|paarl|george|knysna|east\s*london|pietermaritzburg|ballito|umhlanga|westville|pinetown|chatsworth|phoenix)/i,
+        /([a-zA-Z\s]+,\s*(?:gauteng|western\s*cape|kwazulu[^\n\r,]*natal|eastern\s*cape|free\s*state|limpopo|mpumalanga|north\s*west|northern\s*cape))/i,
+        /(johannesburg|cape\s*town|durban|pretoria|port\s*elizabeth|bloemfontein)[^\n\r]*/i
+    ];
+    
+    for (const pattern of locationPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+            return match[1].trim();
+        }
+    }
+    return null;
+}
+
+function extractJobType(text) {
+    if (/\b(?:part[^\w]*time|part[^\w]*time)\b/i.test(text)) return 'part-time';
+    if (/\b(?:contract|contractor|contractual|temporary|temp)\b/i.test(text)) return 'contract';
+    if (/\b(?:intern|internship|learnership|graduate\s*program)\b/i.test(text)) return 'internship';
+    if (/\b(?:freelance|consultant|consulting)\b/i.test(text)) return 'freelance';
+    if (/\b(?:permanent|full[^\w]*time|full[^\w]*time)\b/i.test(text)) return 'full-time';
+    return 'full-time';
+}
+
+function extractSalary(text) {
+    // More comprehensive salary patterns
+    const salaryPatterns = [
+        /(?:salary|compensation|package|earn|pay)[\s:]*r?\s*(\d+[\s,]*\d*)\s*[-–—to]+\s*r?\s*(\d+[\s,]*\d*)/i,
+        /r\s*(\d+[\s,]*\d*)\s*[-–—to]+\s*r?\s*(\d+[\s,]*\d*)/i,
+        /(\d+[\s,]*\d*)\s*[-–—to]+\s*(\d+[\s,]*\d*)[\s]*(?:per\s*month|monthly|pm)/i,
+        /(?:between|from)\s*r?\s*(\d+[\s,]*\d*)\s*(?:and|to|-|–|—)\s*r?\s*(\d+[\s,]*\d*)/i
+    ];
+    
+    for (const pattern of salaryPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1] && match[2]) {
+            const min = parseInt(match[1].replace(/[\s,]/g, ''));
+            const max = parseInt(match[2].replace(/[\s,]/g, ''));
+            
+            if (min > 0 && max > min && min < 1000000 && max < 1000000) {
+                return { min, max };
+            }
+        }
+    }
+    
+    // Single salary pattern
+    const singleSalaryPattern = /(?:salary|pay|earn)[\s:]*r?\s*(\d+[\s,]*\d*)/i;
+    const singleMatch = text.match(singleSalaryPattern);
+    if (singleMatch && singleMatch[1]) {
+        const salary = parseInt(singleMatch[1].replace(/[\s,]/g, ''));
+        if (salary > 0 && salary < 1000000) {
+            return { min: salary, max: null };
+        }
+    }
+    
+    return { min: null, max: null };
+}
+
+function extractSkills(text) {
+    const commonSkills = [
+        // Technical skills
+        'javascript', 'typescript', 'python', 'java', 'c#', 'php', 'ruby', 'go', 'rust', 'swift',
+        'react', 'angular', 'vue', 'node.js', 'express', 'django', 'flask', 'spring', 'laravel',
+        'html', 'css', 'sass', 'less', 'bootstrap', 'tailwind',
+        'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch',
+        'aws', 'azure', 'google cloud', 'docker', 'kubernetes', 'jenkins', 'git', 'github', 'gitlab',
+        'linux', 'ubuntu', 'centos', 'windows server',
+        
+        // Soft skills
+        'communication', 'leadership', 'teamwork', 'problem solving', 'analytical', 'creative',
+        'project management', 'time management', 'adaptability', 'attention to detail',
+        
+        // Office skills
+        'microsoft office', 'excel', 'word', 'powerpoint', 'outlook', 'google workspace',
+        'powerbi', 'tableau', 'salesforce', 'sap', 'jira', 'confluence',
+        
+        // Industry specific
+        'accounting', 'finance', 'marketing', 'sales', 'hr', 'recruiting', 'legal',
+        'engineering', 'design', 'ui/ux', 'graphic design', 'video editing'
+    ];
+    
+    const foundSkills = [];
+    
+    for (const skill of commonSkills) {
+        const skillRegex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (skillRegex.test(text)) {
+            foundSkills.push(skill);
+        }
+    }
+    
+    // Also look for skills mentioned in requirements or qualifications sections
+    const skillSectionPattern = /(?:skills?|requirements?|qualifications?|experience)[\s\S]*?(?:\n\n|\r\n\r\n|$)/i;
+    const skillSection = text.match(skillSectionPattern);
+    
+    if (skillSection) {
+        const sectionText = skillSection[0];
+        for (const skill of commonSkills) {
+            const skillRegex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+            if (skillRegex.test(sectionText) && !foundSkills.includes(skill)) {
+                foundSkills.push(skill);
+            }
+        }
+    }
+    
+    return foundSkills.slice(0, 10); // Limit to 10 skills
+}
+
+function extractDescription(text) {
+    // Try to extract a meaningful job description
+    const descriptionPatterns = [
+        /(?:job\s*description|description|about\s*the\s*role|role\s*overview|overview):\s*([\s\S]+?)(?:\n\n|requirements|qualifications|skills|salary|contact|apply)/i,
+        /(?:we\s*are\s*looking\s*for|seeking|hiring)[\s\S]+?(?:\n\n|requirements|qualifications|skills|salary|contact|apply)/i,
+        /(?:responsibilities|duties):\s*([\s\S]+?)(?:\n\n|requirements|qualifications|skills|salary|contact|apply)/i
+    ];
+    
+    for (const pattern of descriptionPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1] && match[1].trim().length > 50) {
+            let description = match[1].trim();
+            // Clean up the description
+            description = description.replace(/\s+/g, ' ').substring(0, 1000);
+            return description;
+        }
+    }
+    
+    // Fallback: take first substantial paragraph
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50);
+    if (paragraphs.length > 0) {
+        return paragraphs[0].replace(/\s+/g, ' ').substring(0, 1000);
+    }
+    
+    return null;
+}
+
+// Generate sample job text for demo
+function getSampleJobText() {
+    const samples = [
+        `Job Title: Software Developer
+Company: TechCorp Solutions
+Location: Johannesburg, South Africa
+Job Type: Full-time
+Salary: R35,000 - R55,000 per month
+
+We are seeking a talented Software Developer to join our growing team. The ideal candidate will have experience with JavaScript, React, and Node.js.
+
+Requirements:
+- 3+ years of software development experience
+- Proficiency in JavaScript, HTML, CSS
+- Experience with React and Node.js
+- Strong problem-solving skills
+- Excellent communication skills
+
+Responsibilities:
+- Develop and maintain web applications
+- Collaborate with cross-functional teams
+- Write clean, maintainable code
+- Participate in code reviews`,
+
+        `Position: Marketing Manager
+Employer: Digital Marketing Agency
+Address: Cape Town, Western Cape
+Contract Type: Full-time
+Compensation: R45,000 - R65,000
+
+Join our dynamic marketing team as a Marketing Manager. We're looking for someone with strong leadership skills and digital marketing expertise.
+
+Key Skills Required:
+- Digital marketing strategy
+- Social media management
+- Google Analytics
+- Project management
+- Leadership and teamwork
+- Communication skills
+
+Job Description:
+Develop and execute marketing campaigns, manage social media presence, analyze campaign performance, and lead a team of marketing specialists.`,
+
+        `Vacancy: Data Analyst
+Organization: Financial Services Group
+Location: Durban, KwaZulu-Natal
+Employment Type: Contract (12 months)
+Salary Range: R40,000 - R50,000
+
+We are hiring a Data Analyst to support our business intelligence initiatives.
+
+Required Skills:
+- SQL and database management
+- Python or R programming
+- Data visualization tools
+- Excel and PowerPoint
+- Analytical thinking
+- Problem solving
+
+Duties include data collection, analysis, reporting, and presenting insights to stakeholders.`
+    ];
+    
+    return samples[Math.floor(Math.random() * samples.length)];
+}
+
+// Display extracted jobs for review
+function displayExtractedJobs() {
+    const extractedJobsSection = document.getElementById('extractedJobsSection');
+    const extractedJobsList = document.getElementById('extractedJobsList');
+    
+    if (!extractedJobsSection || !extractedJobsList) return;
+    
+    // Show the section
+    extractedJobsSection.classList.remove('hidden');
+    
+    // Clear existing jobs
+    extractedJobsList.innerHTML = '';
+    
+    // Display each extracted job
+    extractedJobs.forEach((job, index) => {
+        const jobCard = createExtractedJobCard(job, index);
+        extractedJobsList.appendChild(jobCard);
+    });
+    
+    lucide.createIcons();
+}
+
+// Create a card for an extracted job
+function createExtractedJobCard(job, index) {
+    const card = document.createElement('div');
+    card.className = 'border border-gray-200 rounded-lg p-6 bg-white';
+    
+    card.innerHTML = `
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i data-lucide="file-text" class="h-4 w-4 text-blue-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900">${job.title}</h4>
+                    <p class="text-sm text-gray-500">From: ${job.fileName}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="approveExtractedJob(${index})" 
+                        class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-white bg-green-600 hover:bg-green-700">
+                    <i data-lucide="check" class="h-3 w-3 mr-1"></i>
+                    Approve
+                </button>
+                <button onclick="rejectExtractedJob(${index})" 
+                        class="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50">
+                    <i data-lucide="x" class="h-3 w-3 mr-1"></i>
+                    Reject
+                </button>
+                <button onclick="editExtractedJob(${index})" 
+                        class="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50">
+                    <i data-lucide="edit" class="h-3 w-3 mr-1"></i>
+                    Edit
+                </button>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-gray-500">Company:</span>
+                <span class="ml-2 text-gray-900">${job.company}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Location:</span>
+                <span class="ml-2 text-gray-900">${job.location}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Type:</span>
+                <span class="ml-2 text-gray-900">${job.job_type}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Salary:</span>
+                <span class="ml-2 text-gray-900">
+                    ${job.salary_min && job.salary_max ? `R${job.salary_min.toLocaleString()} - R${job.salary_max.toLocaleString()}` : 'Not specified'}
+                </span>
+            </div>
+        </div>
+        
+        ${job.skills ? `
+        <div class="mt-4">
+            <span class="text-gray-500 text-sm">Skills:</span>
+            <div class="mt-1 flex flex-wrap gap-1">
+                ${job.skills.split(',').map(skill => `
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                        ${skill.trim()}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+        
+        <div class="mt-4">
+            <p class="text-sm text-gray-600 line-clamp-3">${job.description}</p>
+        </div>
+    `;
+    
+    return card;
+}
+
+// Individual job actions
+window.approveExtractedJob = async function(index) {
+    const job = extractedJobs[index];
+    if (!job) return;
+    
+    try {
+        // Post the job to Firebase
+        await postJobToFirebase(job);
+        
+        // Remove from extracted jobs
+        extractedJobs.splice(index, 1);
+        
+        // Refresh display
+        displayExtractedJobs();
+        
+        showMessage('Job approved and posted successfully!', 'success');
+        
+        // Refresh manage jobs panel if it's active
+        if (panels.manageJobs && !panels.manageJobs.classList.contains('hidden')) {
+            await loadJobs();
+        }
+    } catch (error) {
+        console.error('Error approving job:', error);
+        showMessage('Error approving job. Please try again.', 'error');
+    }
+};
+
+window.rejectExtractedJob = function(index) {
+    extractedJobs.splice(index, 1);
+    displayExtractedJobs();
+    showMessage('Job rejected', 'info');
+};
+
+window.editExtractedJob = function(index) {
+    const job = extractedJobs[index];
+    if (!job) return;
+    
+    // Fill the post job form with extracted data
+    switchTab('postJob');
+    
+    // Populate form fields
+    document.getElementById('title').value = job.title || '';
+    document.getElementById('company').value = job.company || '';
+    document.getElementById('location').value = job.location || '';
+    document.getElementById('job_type').value = job.job_type || 'full-time';
+    document.getElementById('salary_min').value = job.salary_min || '';
+    document.getElementById('salary_max').value = job.salary_max || '';
+    document.getElementById('skills').value = job.skills || '';
+    document.getElementById('description').value = job.description || '';
+    
+    // Remove from extracted jobs
+    extractedJobs.splice(index, 1);
+    displayExtractedJobs();
+    
+    showMessage('Job moved to Post Job form for editing', 'info');
+};
+
+// Bulk actions
+async function approveAllExtractedJobs() {
+    if (extractedJobs.length === 0) return;
+    
+    try {
+        const approvalPromises = extractedJobs.map(job => postJobToFirebase(job));
+        await Promise.all(approvalPromises);
+        
+        const count = extractedJobs.length;
+        extractedJobs = [];
+        displayExtractedJobs();
+        
+        showMessage(`${count} job(s) approved and posted successfully!`, 'success');
+        
+        // Refresh manage jobs panel if it's active
+        if (panels.manageJobs && !panels.manageJobs.classList.contains('hidden')) {
+            await loadJobs();
+        }
+    } catch (error) {
+        console.error('Error approving all jobs:', error);
+        showMessage('Error approving jobs. Please try again.', 'error');
+    }
+}
+
+function rejectAllExtractedJobs() {
+    const count = extractedJobs.length;
+    extractedJobs = [];
+    displayExtractedJobs();
+    showMessage(`${count} job(s) rejected`, 'info');
+}
+
+// Helper function to post job to Firebase
+async function postJobToFirebase(jobData) {
+    const job = {
+        title: jobData.title,
+        company: jobData.company,
+        location: jobData.location,
+        job_type: jobData.job_type,
+        salary_min: jobData.salary_min || null,
+        salary_max: jobData.salary_max || null,
+        company_logo: jobData.company_logo || '',
+        skills: jobData.skills,
+        description: jobData.description,
+        created_at: Timestamp.now(),
+        status: 'active'
+    };
+    
+    await addDoc(collection(db, 'jobs'), job);
+}
+
+// Show/hide extraction status
+function showExtractionStatus(show, message = '') {
+    const statusElement = document.getElementById('extractionStatus');
+    const statusText = document.getElementById('extractionStatusText');
+    
+    if (!statusElement) return;
+    
+    if (show) {
+        statusElement.classList.remove('hidden');
+        if (statusText && message) {
+            statusText.textContent = message;
+        }
+    } else {
+        statusElement.classList.add('hidden');
+    }
+}
+
+// Generate temporary ID for extracted jobs
+function generateTempId() {
+    return 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
 
 // Add some CSS for tab styling
 const style = document.createElement('style');
