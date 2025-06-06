@@ -1,5 +1,13 @@
 import { ApplicationModal } from "@/components/ApplicationModal";
 import { JobCard } from "@/components/JobCard";
+import { EnhancedJobCard } from "@/components/EnhancedJobCard";
+import { MobileJobCard } from "@/components/MobileJobCard";
+import { EnhancedSearchBar } from "@/components/EnhancedSearchBar";
+import { 
+  EnhancedJobCardSkeleton, 
+  MobileJobCardSkeleton,
+  PageLoadingSkeleton 
+} from "@/components/EnhancedSkeletons";
 import { JobDetailsModal } from "@/components/JobDetailsModal";
 import { JobFilters } from "@/components/JobFilters";
 import { JobPostModal } from "@/components/JobPostModal";
@@ -11,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { type Job } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Megaphone, Plus, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,12 +31,25 @@ export default function Home() {
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [jobsPerPage] = useState(6); // Show 6 jobs per page to reduce Firebase reads
+  const [isMobile, setIsMobile] = useState(false);
   
   const [filters, setFilters] = useState({
     jobTypes: [] as string[],
     salaryRange: "any",
     experienceLevels: [] as string[],
   });
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   const { data: jobs = [], isLoading } = useQuery<Job[]>({
     queryKey: ["/api/jobs", searchQuery, searchLocation, filters.jobTypes.join(","), currentPage, jobsPerPage],
@@ -78,37 +99,16 @@ export default function Home() {
           <p className="text-xl text-primary/70 mb-8 max-w-2xl mx-auto">
             Connect with top employers and discover opportunities that match your skills and aspirations
           </p>
-          
-          {/* Search Bar */}
-          <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-2 flex flex-col md:flex-row gap-2">
-            <div className="flex-1 flex items-center px-4 py-2 border-r border-gray-200">
-              <Search className="text-gray-400 mr-3 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="Job title, keywords..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="border-0 focus:ring-0 focus:border-0 text-primary"
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-            <div className="flex-1 flex items-center px-4 py-2 border-r border-gray-200">
-              <MapPin className="text-gray-400 mr-3 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="Location"
-                value={searchLocation}
-                onChange={(e) => setSearchLocation(e.target.value)}
-                className="border-0 focus:ring-0 focus:border-0 text-primary"
-                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-              />
-            </div>
-            <Button 
-              onClick={handleSearch}
-              className="bg-primary text-primary-foreground px-8 py-3 rounded-lg hover:bg-primary/90 font-medium"
-            >
-              Search Jobs
-            </Button>
+            {/* Enhanced Search Bar */}
+          <div className="max-w-4xl mx-auto">
+            <EnhancedSearchBar
+              searchQuery={searchQuery}
+              searchLocation={searchLocation}
+              onSearchQueryChange={setSearchQuery}
+              onSearchLocationChange={setSearchLocation}
+              onSearch={handleSearch}
+              isLoading={isLoading}
+            />
           </div>
         </div>
       </section>
@@ -159,45 +159,18 @@ export default function Home() {
                   Post Job
                 </Button>
               </div>
-            </div>
-
-            {/* Job Cards */}
-            <div className="space-y-4">
+            </div>            {/* Job Cards with Enhanced Design */}
+            <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 stagger-animation'}`}>
               {isLoading ? (
-                // Loading skeletons
-                Array.from({ length: 5 }).map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <Skeleton className="w-12 h-12 rounded-lg" />
-                            <div>
-                              <Skeleton className="h-6 w-48 mb-1" />
-                              <Skeleton className="h-4 w-32" />
-                            </div>
-                          </div>
-                          <div className="flex space-x-4 mb-3">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-4 w-20" />
-                            <Skeleton className="h-4 w-28" />
-                          </div>
-                          <Skeleton className="h-4 w-full mb-2" />
-                          <Skeleton className="h-4 w-3/4 mb-3" />
-                          <div className="flex space-x-2">
-                            <Skeleton className="h-6 w-16" />
-                            <Skeleton className="h-6 w-20" />
-                            <Skeleton className="h-6 w-12" />
-                          </div>
-                        </div>
-                        <div className="ml-4 space-y-2">
-                          <Skeleton className="h-8 w-8" />
-                          <Skeleton className="h-10 w-24" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                // Enhanced loading skeletons
+                isMobile ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <MobileJobCardSkeleton key={i} />
+                  ))                ) : (
+                  Array.from({ length: jobsPerPage }).map((_, i) => (
+                    <EnhancedJobCardSkeleton key={i} />
+                  ))
+                )
               ) : jobs.length === 0 ? (
                 <Card>
                   <CardContent className="p-12 text-center">
@@ -206,15 +179,26 @@ export default function Home() {
                       Try adjusting your search criteria or filters to find more opportunities.
                     </p>
                   </CardContent>
-                </Card>
-              ) : (
+                </Card>              ) : (
                 jobs.map((job, index) => (
-                  <div key={job.id}>
-                    <JobCard job={job} onApply={handleApply} onView={handleViewJob} />
+                  <div key={job.id} className="animate-fade-in-up">
+                    {isMobile ? (
+                      <MobileJobCard 
+                        job={job} 
+                        onApply={handleApply} 
+                        onView={handleViewJob}
+                      />
+                    ) : (
+                      <EnhancedJobCard 
+                        job={job} 
+                        onApply={handleApply} 
+                        onView={handleViewJob}
+                      />
+                    )}
                     
                     {/* Advertisement Card every 3rd job */}
                     {(index + 1) % 3 === 0 && (
-                      <Card className="bg-secondary border-2 border-dashed border-secondary/60 mt-4">
+                      <Card className="bg-secondary border-2 border-dashed border-secondary/60 mt-4 animate-scale-in">
                         <CardContent className="p-6 text-center">
                           <Megaphone className="mx-auto h-8 w-8 text-primary mb-3" />
                           <h4 className="text-lg font-semibold text-primary mb-2">
@@ -225,7 +209,7 @@ export default function Home() {
                           </p>
                           <Button 
                             variant="outline"
-                            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground btn-enhanced"
                           >
                             Learn More
                           </Button>

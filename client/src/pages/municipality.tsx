@@ -1,5 +1,13 @@
 import { ApplicationModal } from "@/components/ApplicationModal";
 import { JobCard } from "@/components/JobCard";
+import { EnhancedJobCard } from "@/components/EnhancedJobCard";
+import { MobileJobCard } from "@/components/MobileJobCard";
+import { EnhancedSearchBar } from "@/components/EnhancedSearchBar";
+import { 
+  EnhancedJobCardSkeleton, 
+  MobileJobCardSkeleton,
+  PageLoadingSkeleton 
+} from "@/components/EnhancedSkeletons";
 import { JobDetailsModal } from "@/components/JobDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { type Job } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Building, MapPin, Search, TreePine, Users } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Municipality() {
   const [searchQuery, setSearchQuery] = useState("");
