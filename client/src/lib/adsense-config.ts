@@ -2,10 +2,10 @@
 // Replace the values below with your actual AdSense credentials
 
 export const ADSENSE_CONFIG = {
-  // Replace with your AdSense Client ID after approval
-  CLIENT_ID: 'ca-pub-XXXXXXXXXX',
+  // Your actual AdSense Client ID from Google
+  CLIENT_ID: 'ca-pub-3243012748609704',
   
-  // Replace with your actual ad slot IDs after setting up ad units
+  // Replace with your actual ad slot IDs after setting up ad units in AdSense
   AD_SLOTS: {
     HEADER_BANNER: '1234567890',
     SIDEBAR_RECTANGLE: '1234567891', 
@@ -20,7 +20,7 @@ export const ADSENSE_CONFIG = {
     TEST_MODE: process.env.NODE_ENV === 'development',
     
     // Data collection consent (for GDPR compliance)
-    DATA_AD_CLIENT: process.env.NODE_ENV === 'development' ? 'ca-google-adsense-test' : 'ca-pub-XXXXXXXXXX',
+    DATA_AD_CLIENT: process.env.NODE_ENV === 'development' ? 'ca-google-adsense-test' : 'ca-pub-3243012748609704',
     
     // Ad formats
     FORMATS: {
