@@ -1,0 +1,37 @@
+// Production Firestore Security Rules for WorkBridge Jobs Platform
+// Apply these rules when ready for production
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Jobs collection - Public read, authenticated write
+    match /jobs/{jobId} {
+      // Anyone can read job listings (public access)
+      allow read: if true;
+      
+      // Only authenticated users can create/update/delete jobs
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    // Applications collection - Restricted access
+    match /applications/{applicationId} {
+      // Anyone can create job applications
+      allow create: if true;
+      
+      // Only authenticated users (admins) can read/manage applications
+      allow read, update, delete: if request.auth != null;
+    }
+    
+    // Admin collection - Highly restricted
+    match /admin/{document} {
+      // Only specific admin emails can access admin data
+      allow read, write: if request.auth != null && 
+        request.auth.token.email in ['admin@workbridge.com', 'your-admin-email@gmail.com'];
+    }
+    
+    // Analytics/stats collection (optional)
+    match /analytics/{document} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

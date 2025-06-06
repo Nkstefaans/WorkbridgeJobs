@@ -1,18 +1,19 @@
+import { insertApplicationSchema, insertJobSchema } from "@shared/schema";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { insertJobSchema, insertApplicationSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { storage } from "./storage";
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Get all jobs with optional search filters
+export async function registerRoutes(app: Express): Promise<Server> {  // Get all jobs with optional search filters and pagination
   app.get("/api/jobs", async (req, res) => {
     try {
-      const { query, location, jobType } = req.query;
+      const { query, location, jobType, page = "1", limit = "10" } = req.query;
       const jobs = await storage.searchJobs(
         query as string,
         location as string,
-        jobType as string
+        jobType as string,
+        parseInt(page as string),
+        parseInt(limit as string)
       );
       res.json(jobs);
     } catch (error) {

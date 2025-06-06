@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Jobs collection - read-only access for public users
+    match /jobs/{jobId} {
+      // Allow reading jobs for all users (public job board)
+      allow read: if true;
+      
+      // Only allow writes from authenticated admin users
+      allow write: if request.auth != null && 
+                   request.auth.token.admin == true;
+    }
+    
+    // Applications collection - restricted access
+    match /applications/{applicationId} {
+      // Users can only read their own applications
+      allow read: if request.auth != null && 
+                  request.auth.uid == userId;
+      
+      // Users can create new applications
+      allow create: if request.auth != null && 
+                    request.auth.uid == request.resource.data.userId;
+      
+      // Only admin can update/delete applications
+      allow update, delete: if request.auth != null && 
+                            request.auth.token.admin == true;
+    }
+    
+    // User profiles collection
+    match /users/{userId} {
+      // Users can read/write their own profile
+      allow read, write: if request.auth != null && 
+                         request.auth.uid == userId;
+      
+      // Admin can read all profiles
+      allow read: if request.auth != null && 
+                  request.auth.token.admin == true;
+    }
+    
+    // Admin collection - restricted to admins only
+    match /admin/{document} {
+      allow read, write: if request.auth != null && 
+                         request.auth.token.admin == true;
+    }
+    
+    // Block all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

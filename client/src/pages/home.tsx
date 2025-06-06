@@ -21,6 +21,8 @@ export default function Home() {
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const [isJobPostModalOpen, setIsJobPostModalOpen] = useState(false);
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [jobsPerPage] = useState(6); // Show 6 jobs per page to reduce Firebase reads
   
   const [filters, setFilters] = useState({
     jobTypes: [] as string[],
@@ -29,23 +31,26 @@ export default function Home() {
   });
 
   const { data: jobs = [], isLoading } = useQuery<Job[]>({
-    queryKey: ["/api/jobs", searchQuery, searchLocation, filters.jobTypes.join(",")],
+    queryKey: ["/api/jobs", searchQuery, searchLocation, filters.jobTypes.join(","), currentPage, jobsPerPage],
     queryFn: async ({ queryKey }) => {
-      const [url, query, location, jobTypes] = queryKey;
+      const [url, query, location, jobTypes, page, limit] = queryKey;
       const params = new URLSearchParams();
       
       if (query) params.append("query", query as string);
       if (location) params.append("location", location as string);
       if (jobTypes && jobTypes !== "") params.append("jobType", jobTypes as string);
+      params.append("page", String(page));
+      params.append("limit", String(limit));
       
       const response = await fetch(`${url}?${params}`);
       if (!response.ok) throw new Error("Failed to fetch jobs");
       return response.json();
     },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const handleSearch = () => {
-    // The query will automatically refetch when searchQuery or searchLocation changes
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleApply = (job: Job) => {
@@ -232,18 +237,38 @@ export default function Home() {
               )}
             </div>
 
-            {/* Pagination */}
-            {jobs.length > 0 && (
+            {/* Pagination */}            {jobs.length > 0 && (
               <div className="flex justify-center items-center space-x-2 mt-8">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
                   Previous
                 </Button>
-                <Button className="bg-primary text-primary-foreground">1</Button>
-                <Button variant="outline">2</Button>
-                <Button variant="outline">3</Button>
-                <span className="px-3 py-2 text-muted-foreground">...</span>
-                <Button variant="outline">25</Button>
-                <Button variant="outline" size="sm">
+                
+                {/* Show current page */}
+                <Button className="bg-primary text-primary-foreground">
+                  {currentPage}
+                </Button>
+                
+                {/* Show next page if there might be more data */}
+                {jobs.length === jobsPerPage && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    {currentPage + 1}
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={jobs.length < jobsPerPage}
+                >
                   Next
                 </Button>
               </div>

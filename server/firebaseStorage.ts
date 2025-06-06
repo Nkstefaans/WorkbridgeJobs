@@ -143,8 +143,7 @@ export class FirebaseStorage implements IStorage {
       throw error;
     }
   }
-
-  async searchJobs(query?: string, location?: string, jobType?: string): Promise<Job[]> {
+  async searchJobs(query?: string, location?: string, jobType?: string, page = 1, limit = 10): Promise<Job[]> {
     try {
       let jobsQuery = firestoreQuery(this.jobsCollection, orderBy('posted_date', 'desc'));
       
@@ -175,7 +174,10 @@ export class FirebaseStorage implements IStorage {
         );
       }
 
-      return jobs;
+      // Apply pagination to reduce data transfer
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      return jobs.slice(startIndex, endIndex);
     } catch (error) {
       console.error('❌ Firebase: Error searching jobs:', error);
       return [];

@@ -1,28 +1,42 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Search, MapPin, ShoppingBag, Users, Clock } from "lucide-react";
-import { JobCard } from "@/components/JobCard";
 import { ApplicationModal } from "@/components/ApplicationModal";
+import { JobCard } from "@/components/JobCard";
+import { JobDetailsModal } from "@/components/JobDetailsModal";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { type Job } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { Clock, MapPin, Search, ShoppingBag, Users } from "lucide-react";
+import { useState } from "react";
 
 export default function Retail() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchLocation, setSearchLocation] = useState("");
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [searchLocation, setSearchLocation] = useState("");  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+  const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [jobsPerPage] = useState(6); // Show 6 jobs per page to reduce Firebase reads
 
   const { data: jobs = [], isLoading } = useQuery<Job[]>({
-    queryKey: ["/api/jobs", searchQuery, searchLocation, "retail"],
+    queryKey: ["/api/jobs", searchQuery, searchLocation, "retail", currentPage, jobsPerPage],
     queryFn: async ({ queryKey }) => {
-      const [url, query, location] = queryKey;
+      const [url, query, location, , page, limit] = queryKey;
       const params = new URLSearchParams();
       
       if (query) params.append("query", query as string);
       if (location) params.append("location", location as string);
+      params.append("page", String(page));
+      params.append("limit", String(limit));
       
       // Filter for retail-related jobs
       const response = await fetch(`${url}?${params}`);
@@ -43,15 +57,27 @@ export default function Retail() {
         job.description.toLowerCase().includes('customer service')
       );
     },
-  });
-
-  const handleSearch = () => {
-    // Query will automatically refetch when searchQuery or searchLocation changes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });  const handleSearch = () => {
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleApply = (job: Job) => {
     setSelectedJob(job);
     setIsApplicationModalOpen(true);
+  };
+
+  const handleViewJob = (job: Job) => {
+    setSelectedJob(job);
+    setIsJobDetailsModalOpen(true);
+  };
+
+  // Calculate total pages (estimate since we're filtering client-side)
+  const totalPages = Math.max(1, Math.ceil((jobs.length || 0) / jobsPerPage));
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -190,22 +216,86 @@ export default function Retail() {
                   Check back soon for new retail opportunities, or try adjusting your search criteria.
                 </p>
               </CardContent>
-            </Card>
-          ) : (
+            </Card>          ) : (
             jobs.map((job) => (
-              <JobCard key={job.id} job={job} onApply={handleApply} />
+              <JobCard key={job.id} job={job} onApply={handleApply} onView={handleViewJob} />
             ))
-          )}
-        </div>
-      </main>
-
-      {/* Application Modal */}
+          )}</div>
+        
+        {/* Pagination Controls */}
+        {!isLoading && jobs.length > 0 && totalPages > 1 && (
+          <div className="flex justify-center mt-12">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNumber;
+                  if (totalPages <= 5) {
+                    pageNumber = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNumber = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNumber = totalPages - 4 + i;
+                  } else {
+                    pageNumber = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(pageNumber)}
+                        isActive={currentPage === pageNumber}
+                        className="cursor-pointer"
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+      </main>      {/* Application Modal */}
       <ApplicationModal
         job={selectedJob}
         isOpen={isApplicationModalOpen}
         onClose={() => {
           setIsApplicationModalOpen(false);
           setSelectedJob(null);
+        }}
+      />
+
+      {/* Job Details Modal */}
+      <JobDetailsModal
+        job={selectedJob}
+        isOpen={isJobDetailsModalOpen}
+        onClose={() => {
+          setIsJobDetailsModalOpen(false);
+          setSelectedJob(null);
+        }}
+        onApply={() => {
+          setIsJobDetailsModalOpen(false);
+          setIsApplicationModalOpen(true);
         }}
       />
     </div>

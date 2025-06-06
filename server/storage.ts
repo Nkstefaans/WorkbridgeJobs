@@ -6,7 +6,7 @@ export interface IStorage {
   getJobs(): Promise<Job[]>;
   getJob(id: number): Promise<Job | undefined>;
   createJob(job: InsertJob): Promise<Job>;
-  searchJobs(query?: string, location?: string, jobType?: string): Promise<Job[]>;
+  searchJobs(query?: string, location?: string, jobType?: string, page?: number, limit?: number): Promise<Job[]>;
   
   // Application methods
   getApplications(): Promise<Application[]>;
@@ -72,8 +72,7 @@ export class MemStorage implements IStorage {
     this.jobs.set(id, job);
     return job;
   }
-
-  async searchJobs(query?: string, location?: string, jobType?: string): Promise<Job[]> {
+  async searchJobs(query?: string, location?: string, jobType?: string, page = 1, limit = 10): Promise<Job[]> {
     let jobs = Array.from(this.jobs.values());
 
     if (query) {
@@ -97,9 +96,15 @@ export class MemStorage implements IStorage {
       jobs = jobs.filter(job => job.job_type === jobType);
     }
 
-    return jobs.sort((a, b) => 
+    // Sort by posted date
+    jobs = jobs.sort((a, b) => 
       new Date(b.posted_date || 0).getTime() - new Date(a.posted_date || 0).getTime()
     );
+
+    // Apply pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    return jobs.slice(startIndex, endIndex);
   }
 
   async getApplications(): Promise<Application[]> {
