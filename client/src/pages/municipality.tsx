@@ -1,13 +1,14 @@
 import { ApplicationModal } from "@/components/ApplicationModal";
-import { JobCard } from "@/components/JobCard";
 import { EnhancedJobCard } from "@/components/EnhancedJobCard";
-import { MobileJobCard } from "@/components/MobileJobCard";
-import { EnhancedSearchBar } from "@/components/EnhancedSearchBar";
-import { 
-  EnhancedJobCardSkeleton, 
-  MobileJobCardSkeleton,
-  PageLoadingSkeleton 
+import {
+  EnhancedJobCardSkeleton
 } from "@/components/EnhancedSkeletons";
+import {
+  HeaderBannerAd,
+  InContentAd,
+  MobileStickyAd,
+  SidebarAd
+} from "@/components/GoogleAds";
 import { JobDetailsModal } from "@/components/JobDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,11 +22,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Skeleton } from "@/components/ui/skeleton";
 import { type Job } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Building, MapPin, Search, TreePine, Users } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Municipality() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -168,52 +168,30 @@ export default function Municipality() {
                 </p>
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </div>        </div>
       </section>
 
+      {/* Header Banner Ad */}
+      <HeaderBannerAd />
+
       <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-3">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-primary">
             {isLoading ? "Loading..." : `${jobs.length} Municipal Positions Available`}
           </h2>
           <p className="text-muted-foreground">Local government opportunities in cities, towns, and counties</p>
-        </div>
-
-        {/* Job Cards */}
-        <div className="space-y-4">
+        </div>        {/* Job Cards */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {isLoading ? (
             // Loading skeletons
-            Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <Skeleton className="w-12 h-12 rounded-lg" />
-                        <div>
-                          <Skeleton className="h-6 w-48 mb-1" />
-                          <Skeleton className="h-4 w-32" />
-                        </div>
-                      </div>
-                      <div className="flex space-x-4 mb-3">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-4 w-28" />
-                      </div>
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-3/4 mb-3" />
-                    </div>
-                    <div className="ml-4 space-y-2">
-                      <Skeleton className="h-8 w-8" />
-                      <Skeleton className="h-10 w-24" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            Array.from({ length: 6 }).map((_, i) => (
+              <EnhancedJobCardSkeleton key={i} />
             ))
           ) : jobs.length === 0 ? (
-            <Card>
+            <Card className="col-span-full">
               <CardContent className="p-12 text-center">
                 <Building className="mx-auto h-16 w-16 text-gray-400 mb-4" />
                 <h3 className="text-xl font-semibold text-primary mb-2">No municipal positions found</h3>
@@ -222,10 +200,25 @@ export default function Municipality() {
                 </p>
               </CardContent>
             </Card>          ) : (
-            jobs.map((job) => (
-              <JobCard key={job.id} job={job} onApply={handleApply} onView={handleViewJob} />
+            jobs.map((job, index) => (
+              <div key={job.id}>
+                <div className="animate-fade-in-up">
+                  <EnhancedJobCard 
+                    job={job} 
+                    onApply={handleApply} 
+                    onView={handleViewJob}
+                  />
+                </div>
+                {/* In-content Ad every 4th job */}
+                {(index + 1) % 4 === 0 && index < jobs.length - 1 && (
+                  <div className="xl:col-span-2">
+                    <InContentAd />
+                  </div>
+                )}
+              </div>
             ))
-          )}</div>
+          )}
+        </div>
         
         {/* Pagination Controls */}
         {!isLoading && jobs.length > 0 && totalPages > 1 && (
@@ -278,9 +271,21 @@ export default function Municipality() {
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
+          </div>        )}
           </div>
-        )}
-      </main>      {/* Application Modal */}
+
+          {/* Sidebar with Ads - Desktop Only */}
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-8 space-y-6">
+              <SidebarAd />
+              <SidebarAd />
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Mobile Sticky Ad */}
+      <MobileStickyAd />{/* Application Modal */}
       <ApplicationModal
         job={selectedJob}
         isOpen={isApplicationModalOpen}

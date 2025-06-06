@@ -1,25 +1,23 @@
 import { ApplicationModal } from "@/components/ApplicationModal";
-import { JobCard } from "@/components/JobCard";
+import { CookieConsent } from "@/components/CookieConsent";
 import { EnhancedJobCard } from "@/components/EnhancedJobCard";
-import { MobileJobCard } from "@/components/MobileJobCard";
 import { EnhancedSearchBar } from "@/components/EnhancedSearchBar";
-import { 
-  EnhancedJobCardSkeleton, 
-  MobileJobCardSkeleton,
-  PageLoadingSkeleton 
+import {
+    EnhancedJobCardSkeleton,
+    MobileJobCardSkeleton
 } from "@/components/EnhancedSkeletons";
+import { HeaderBannerAd, InContentAd, MobileStickyAd, SidebarAd } from "@/components/GoogleAds";
 import { JobDetailsModal } from "@/components/JobDetailsModal";
 import { JobFilters } from "@/components/JobFilters";
 import { JobPostModal } from "@/components/JobPostModal";
+import { MobileJobCard } from "@/components/MobileJobCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { type Job } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Megaphone, Plus, Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Megaphone, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,28 +109,26 @@ export default function Home() {
             />
           </div>
         </div>
-      </section>
-
-      {/* Advertisement Banner */}
+      </section>      {/* Advertisement Banner */}
       <div className="bg-white border-b border-gray-200 py-4">
         <div className="container mx-auto px-4">
-          <Card className="bg-secondary">
-            <CardContent className="p-4 text-center">
-              <p className="text-primary text-sm font-medium">
-                <Megaphone className="inline w-4 h-4 mr-2" />
-                Advertisement Space - Premium Job Board Solutions
-              </p>
-            </CardContent>
-          </Card>
+          <HeaderBannerAd />
         </div>
-      </div>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <JobFilters filters={filters} onFiltersChange={setFilters} />
+      </div>      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">          {/* Sidebar with Filters and Ads */}
+          <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
+            <div className="sticky top-8">
+              <JobFilters filters={filters} onFiltersChange={setFilters} />
+            </div>
+            
+            {/* Sidebar Ad - Desktop Only */}
+            <div className="hidden lg:block sticky top-8">
+              <SidebarAd />
+            </div>
+          </div>
 
           {/* Job Listings */}
-          <div className="lg:w-3/4">
+          <div className="lg:col-span-3 order-1 lg:order-2">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-primary">
@@ -194,10 +190,14 @@ export default function Home() {
                         onApply={handleApply} 
                         onView={handleViewJob}
                       />
+                    )}                    
+                    {/* In-Content Ad every 4th job */}
+                    {(index + 1) % 4 === 0 && (
+                      <InContentAd className="my-6" />
                     )}
                     
-                    {/* Advertisement Card every 3rd job */}
-                    {(index + 1) % 3 === 0 && (
+                    {/* Sponsored Content Card every 6th job */}
+                    {(index + 1) % 6 === 0 && (
                       <Card className="bg-secondary border-2 border-dashed border-secondary/60 mt-4 animate-scale-in">
                         <CardContent className="p-6 text-center">
                           <Megaphone className="mx-auto h-8 w-8 text-primary mb-3" />
@@ -284,7 +284,11 @@ export default function Home() {
           setSelectedJob(null);
         }}
         onApply={handleApply}
-      />
+      />      {/* Mobile Sticky Ad */}
+      <MobileStickyAd />
+
+      {/* Cookie Consent */}
+      <CookieConsent />
     </div>
   );
 }

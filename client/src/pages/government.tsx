@@ -22,6 +22,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  HeaderBannerAd, 
+  SidebarAd, 
+  InContentAd, 
+  MobileStickyAd 
+} from "@/components/GoogleAds";
 import { type Job } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, MapPin, Search, Shield } from "lucide-react";
@@ -177,22 +183,29 @@ export default function Government() {
                 </p>
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </div>        </div>
       </section>
 
+      {/* Header Banner Ad */}
+      <HeaderBannerAd />
+
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-primary">
-            {isLoading
-              ? "Loading..."
-              : `${jobs.length} Government Positions Available`}
-          </h2>
-          <p className="text-muted-foreground">
-            Public service opportunities across all levels of government
-          </p>
-        </div>        {/* Enhanced Job Cards */}
-        <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 stagger-animation'}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-primary">
+                {isLoading
+                  ? "Loading..."
+                  : `${jobs.length} Government Positions Available`}
+              </h2>
+              <p className="text-muted-foreground">
+                Public service opportunities across all levels of government
+              </p>
+            </div>
+
+            {/* Enhanced Job Cards */}
+            <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 xl:grid-cols-2 gap-6 stagger-animation'}`}>
           {isLoading ? (
             // Enhanced loading skeletons
             isMobile ? (
@@ -295,11 +308,23 @@ export default function Government() {
                     }
                   />
                 </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+              </PaginationContent>            </Pagination>
           </div>
         )}
+          </div>
+
+          {/* Sidebar with Ads - Desktop Only */}
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-8 space-y-6">
+              <SidebarAd />
+              <SidebarAd />
+            </div>
+          </div>
+        </div>
       </main>
+
+      {/* Mobile Sticky Ad */}
+      <MobileStickyAd />
       {/* Application Modal */}
       <ApplicationModal
         job={selectedJob}

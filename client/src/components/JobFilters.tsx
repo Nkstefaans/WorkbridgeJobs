@@ -34,13 +34,13 @@ export function JobFilters({ filters, onFiltersChange }: JobFiltersProps) {
       ...filters,
       experienceLevels: newLevels
     });
-  };
-
-  return (
-    <aside className="lg:w-1/4 space-y-6">
-      <Card>
+  };  return (
+    <div className="space-y-6">
+      <Card className="shadow-sm">
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold text-primary mb-4">Filters</h3>
+          <h3 className="text-lg font-semibold text-primary mb-4 flex items-center">
+            <span>Filters</span>
+          </h3>
           
           <div className="space-y-6">
             <div>
@@ -116,9 +116,8 @@ export function JobFilters({ filters, onFiltersChange }: JobFiltersProps) {
             <p className="text-primary/70 text-sm">
               Discover opportunities with top employers
             </p>
-          </div>
-        </CardContent>
+          </div>        </CardContent>
       </Card>
-    </aside>
+    </div>
   );
 }
