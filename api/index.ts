@@ -7,47 +7,78 @@ function setCORS(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 }
 
-// Initialize Firebase and get jobs
-async function getJobsFromFirebase(page = 1, limit = 6, category?: string) {
+// Global Firebase app instance
+let firebaseApp: any = null;
+let firestoreDb: any = null;
+
+// Initialize Firebase once
+async function initializeFirebase() {
+  if (firebaseApp && firestoreDb) {
+    return { app: firebaseApp, db: firestoreDb };
+  }
+
   try {
-    // Dynamic imports to avoid initialization issues
-    const { initializeApp } = await import('firebase/app');
-    const { getFirestore, collection, getDocs, query, orderBy, startAt, limit: firestoreLimit } = await import('firebase/firestore');
+    const { initializeApp, getApps } = await import('firebase/app');
+    const { getFirestore, connectFirestoreEmulator } = await import('firebase/firestore');
     
-    const firebaseConfig = {
-      apiKey: process.env.FIREBASE_API_KEY,
-      authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.FIREBASE_APP_ID,
-      measurementId: process.env.FIREBASE_MEASUREMENT_ID,
-    };
+    // Check if Firebase is already initialized
+    const existingApps = getApps();
+    if (existingApps.length > 0) {
+      firebaseApp = existingApps[0];
+    } else {
+      const firebaseConfig = {
+        apiKey: process.env.FIREBASE_API_KEY,
+        authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.FIREBASE_APP_ID,
+        measurementId: process.env.FIREBASE_MEASUREMENT_ID,
+      };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    
-    let jobQuery = query(
-      collection(db, 'jobs'),
-      orderBy('posted_date', 'desc'),
-      firestoreLimit(limit)
-    );
+      console.log('Initializing Firebase with config:', {
+        projectId: firebaseConfig.projectId,
+        hasApiKey: !!firebaseConfig.apiKey,
+        hasAuthDomain: !!firebaseConfig.authDomain,
+      });
 
-    if (page > 1) {
-      const offset = (page - 1) * limit;
-      jobQuery = query(
-        collection(db, 'jobs'),
-        orderBy('posted_date', 'desc'),
-        startAt(offset),
-        firestoreLimit(limit)
-      );
+      firebaseApp = initializeApp(firebaseConfig);
     }
 
+    firestoreDb = getFirestore(firebaseApp);
+    
+    return { app: firebaseApp, db: firestoreDb };
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    throw error;
+  }
+}
+
+// Get jobs from Firebase
+async function getJobsFromFirebase(page = 1, limit = 6, category?: string) {
+  try {
+    const { db } = await initializeFirebase();
+    const { collection, getDocs, query, orderBy, limit: firestoreLimit } = await import('firebase/firestore');    
+    // Create a simple query without pagination for now to avoid errors
+    const jobQuery = query(
+      collection(db, 'jobs'),
+      orderBy('posted_date', 'desc'),
+      firestoreLimit(limit * page) // Get more data and slice it
+    );
+
     const snapshot = await getDocs(jobQuery);
-    const jobs = snapshot.docs.map(doc => ({
+    let jobs = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+
+    // Manual pagination - skip the first (page-1) * limit items
+    if (page > 1) {
+      const startIndex = (page - 1) * limit;
+      jobs = jobs.slice(startIndex, startIndex + limit);
+    } else {
+      jobs = jobs.slice(0, limit);
+    }
 
     // Filter by category if specified
     if (category && category !== 'all') {
@@ -75,14 +106,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { url } = req;
   const urlPath = url?.split('?')[0] || '';
 
-  try {
-    // Debug endpoint
+  try {    // Debug endpoint
     if (urlPath.endsWith('/debug')) {
       return res.json({
         nodeEnv: process.env.NODE_ENV,
         hasFirebaseApiKey: !!process.env.FIREBASE_API_KEY,
         hasFirebaseProjectId: !!process.env.FIREBASE_PROJECT_ID,
         firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
+        firebaseApiKeyLength: process.env.FIREBASE_API_KEY?.length || 0,
+        firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
+        allEnvVars: Object.keys(process.env).filter(key => key.startsWith('FIREBASE_')),
         timestamp: new Date().toISOString(),
         url: req.url,
         method: req.method
