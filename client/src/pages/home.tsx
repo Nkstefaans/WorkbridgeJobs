@@ -115,14 +115,15 @@ export default function Home() {
           <HeaderBannerAd />
         </div>
       </div>      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">          {/* Sidebar with Filters and Ads */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar with Filters and Ads */}
           <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
-            <div className="sticky top-8">
+            <div className="sticky top-8 w-full" style={{ minWidth: '250px', maxWidth: '300px' }}>
               <JobFilters filters={filters} onFiltersChange={setFilters} />
             </div>
             
             {/* Sidebar Ad - Desktop Only */}
-            <div className="hidden lg:block sticky top-8">
+            <div className="hidden lg:block sticky top-8 w-full" style={{ minWidth: '250px', maxWidth: '300px' }}>
               <SidebarAd />
             </div>
           </div>

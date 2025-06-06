@@ -6,12 +6,13 @@ export const ADSENSE_CONFIG = {
   CLIENT_ID: 'ca-pub-3243012748609704',
   
   // Replace with your actual ad slot IDs after setting up ad units in AdSense
+  // Using placeholder IDs for development - these will show placeholder ads
   AD_SLOTS: {
-    HEADER_BANNER: '1234567890',
-    SIDEBAR_RECTANGLE: '1234567891', 
-    IN_CONTENT: '1234567892',
-    MOBILE_STICKY: '1234567893',
-    FOOTER_BANNER: '1234567894',
+    HEADER_BANNER: '1234567890', // Replace with actual slot ID
+    SIDEBAR_RECTANGLE: '1234567891', // Replace with actual slot ID
+    IN_CONTENT: '1234567892', // Replace with actual slot ID
+    MOBILE_STICKY: '1234567893', // Replace with actual slot ID
+    FOOTER_BANNER: '1234567894', // Replace with actual slot ID
   },
   
   // AdSense settings
@@ -22,7 +23,7 @@ export const ADSENSE_CONFIG = {
     // Data collection consent (for GDPR compliance)
     DATA_AD_CLIENT: process.env.NODE_ENV === 'development' ? 'ca-google-adsense-test' : 'ca-pub-3243012748609704',
     
-    // Ad formats
+    // Ad formats with minimum dimensions
     FORMATS: {
       AUTO: 'auto',
       RECTANGLE: 'rectangle', 
@@ -30,8 +31,19 @@ export const ADSENSE_CONFIG = {
       HORIZONTAL: 'horizontal',
     },
     
+    // Minimum ad dimensions to prevent sizing errors
+    MIN_DIMENSIONS: {
+      BANNER: { width: 320, height: 50 },
+      RECTANGLE: { width: 250, height: 250 },
+      LARGE_RECTANGLE: { width: 336, height: 280 },
+      LEADERBOARD: { width: 728, height: 90 },
+    },
+    
     // Responsive settings
     FULL_WIDTH_RESPONSIVE: true,
+    
+    // Enable lazy loading for better performance
+    LAZY_LOADING: true,
   }
 };
 
