@@ -112,19 +112,18 @@ export default function Home() {
       </section>      {/* Advertisement Banner */}
       <div className="bg-white border-b border-gray-200 py-4">
         <div className="container mx-auto px-4">
-          <HeaderBannerAd />
+          <HeaderBannerAd showInDev={true} />
         </div>
-      </div>      <main className="container mx-auto px-4 py-8">
+      </div><main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar with Filters and Ads */}
           <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
             <div className="sticky top-8 w-full" style={{ minWidth: '250px', maxWidth: '300px' }}>
               <JobFilters filters={filters} onFiltersChange={setFilters} />
             </div>
-            
-            {/* Sidebar Ad - Desktop Only */}
+              {/* Sidebar Ad - Desktop Only */}
             <div className="hidden lg:block sticky top-8 w-full" style={{ minWidth: '250px', maxWidth: '300px' }}>
-              <SidebarAd />
+              <SidebarAd showInDev={true} />
             </div>
           </div>
 
@@ -191,10 +190,9 @@ export default function Home() {
                         onApply={handleApply} 
                         onView={handleViewJob}
                       />
-                    )}                    
-                    {/* In-Content Ad every 4th job */}
+                    )}                      {/* In-Content Ad every 4th job */}
                     {(index + 1) % 4 === 0 && (
-                      <InContentAd className="my-6" />
+                      <InContentAd className="my-6" showInDev={true} />
                     )}
                     
                     {/* Sponsored Content Card every 6th job */}
@@ -286,7 +284,7 @@ export default function Home() {
         }}
         onApply={handleApply}
       />      {/* Mobile Sticky Ad */}
-      <MobileStickyAd />
+      <MobileStickyAd showInDev={true} />
 
       {/* Cookie Consent */}
       <CookieConsent />

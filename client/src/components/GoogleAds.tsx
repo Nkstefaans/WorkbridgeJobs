@@ -16,6 +16,7 @@ interface GoogleAdProps {
   className?: string;
   style?: React.CSSProperties;
   fullWidthResponsive?: boolean;
+  showInDev?: boolean;
 }
 
 export function GoogleAd({
@@ -25,14 +26,15 @@ export function GoogleAd({
   adLayoutKey,
   className = '',
   style = {},
-  fullWidthResponsive = true
+  fullWidthResponsive = true,
+  showInDev = false
 }: GoogleAdProps) {
   const adRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Don't load ads in development or if using placeholder ad slots
-    if (process.env.NODE_ENV === 'development' || adSlot.startsWith('1234567')) {
+    // Show placeholder in development unless explicitly requested to show real ads
+    if (process.env.NODE_ENV === 'development' && !showInDev) {
       return;
     }
 
@@ -66,14 +68,19 @@ export function GoogleAd({
     return () => clearTimeout(timer);
   }, [adSlot, isLoaded]);
 
-  // Show placeholder in development
-  if (process.env.NODE_ENV === 'development' || adSlot.startsWith('1234567')) {
+  // Show placeholder in development unless showInDev is true
+  if (process.env.NODE_ENV === 'development' && !showInDev) {
     return (
       <div 
         className={cn('bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm', className)}
         style={style}
       >
-        Ad Placeholder ({adFormat})
+        <div className="text-center p-4">
+          <div className="font-medium">Google Ad Placeholder</div>
+          <div className="text-xs mt-1">Format: {adFormat}</div>
+          <div className="text-xs">Slot: {adSlot}</div>
+          <div className="text-xs text-blue-600 mt-2">Set showInDev=true to test real ads</div>
+        </div>
       </div>
     );
   }
@@ -99,7 +106,7 @@ export function GoogleAd({
 }
 
 // Predefined ad components for common use cases
-export function HeaderBannerAd({ className }: { className?: string }) {
+export function HeaderBannerAd({ className, showInDev = false }: { className?: string; showInDev?: boolean }) {
   return (
     <div className={cn('w-full flex justify-center', className)}>
       <GoogleAd
@@ -107,12 +114,13 @@ export function HeaderBannerAd({ className }: { className?: string }) {
         adFormat="auto"
         className="w-full max-w-4xl"
         style={{ minHeight: '90px', minWidth: '320px' }}
+        showInDev={showInDev}
       />
     </div>
   );
 }
 
-export function SidebarAd({ className }: { className?: string }) {
+export function SidebarAd({ className, showInDev = false }: { className?: string; showInDev?: boolean }) {
   return (
     <div className={cn('w-full', className)}>
       <GoogleAd
@@ -125,12 +133,13 @@ export function SidebarAd({ className }: { className?: string }) {
           maxWidth: '300px',
           minWidth: '250px'
         }}
+        showInDev={showInDev}
       />
     </div>
   );
 }
 
-export function InContentAd({ className }: { className?: string }) {
+export function InContentAd({ className, showInDev = false }: { className?: string; showInDev?: boolean }) {
   return (
     <div className={cn('my-8 flex justify-center', className)}>
       <div className="text-center w-full max-w-2xl">
@@ -142,13 +151,14 @@ export function InContentAd({ className }: { className?: string }) {
           adFormat="auto"
           className="w-full"
           style={{ minHeight: '200px', minWidth: '320px' }}
+          showInDev={showInDev}
         />
       </div>
     </div>
   );
 }
 
-export function MobileStickyAd() {
+export function MobileStickyAd({ showInDev = false }: { showInDev?: boolean }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
       <div className="flex justify-center p-2">
@@ -157,13 +167,14 @@ export function MobileStickyAd() {
           adFormat="auto"
           className="w-full max-w-sm"
           style={{ minHeight: '50px', minWidth: '320px' }}
+          showInDev={showInDev}
         />
       </div>
     </div>
   );
 }
 
-export function FooterAd({ className }: { className?: string }) {
+export function FooterAd({ className, showInDev = false }: { className?: string; showInDev?: boolean }) {
   return (
     <div className={cn('w-full flex justify-center py-4', className)}>
       <GoogleAd
@@ -171,6 +182,7 @@ export function FooterAd({ className }: { className?: string }) {
         adFormat="auto"
         className="w-full max-w-4xl"
         style={{ minHeight: '90px', minWidth: '320px' }}
+        showInDev={showInDev}
       />
     </div>
   );

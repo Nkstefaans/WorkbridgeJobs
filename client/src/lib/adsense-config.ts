@@ -6,13 +6,13 @@ export const ADSENSE_CONFIG = {
   CLIENT_ID: 'ca-pub-3243012748609704',
   
   // Replace with your actual ad slot IDs after setting up ad units in AdSense
-  // Using placeholder IDs for development - these will show placeholder ads
+  // Using your real ad slot ID from Google AdSense
   AD_SLOTS: {
-    HEADER_BANNER: '1234567890', // Replace with actual slot ID
-    SIDEBAR_RECTANGLE: '1234567891', // Replace with actual slot ID
-    IN_CONTENT: '1234567892', // Replace with actual slot ID
-    MOBILE_STICKY: '1234567893', // Replace with actual slot ID
-    FOOTER_BANNER: '1234567894', // Replace with actual slot ID
+    HEADER_BANNER: '4858575399', // Real ad slot ID from AdSense
+    SIDEBAR_RECTANGLE: '4858575399', // Real ad slot ID from AdSense
+    IN_CONTENT: '4858575399', // Real ad slot ID from AdSense
+    MOBILE_STICKY: '4858575399', // Real ad slot ID from AdSense
+    FOOTER_BANNER: '4858575399', // Real ad slot ID from AdSense
   },
   
   // AdSense settings
