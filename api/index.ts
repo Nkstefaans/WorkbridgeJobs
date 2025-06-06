@@ -1,56 +1,140 @@
-import 'dotenv/config';
-import express, { NextFunction, type Request, Response } from "express";
-import { registerRoutes } from "../server/routes";
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
-const app = express();
+// Set CORS headers
+function setCORS(res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+}
 
-// CORS configuration for Vercel
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
+// Initialize Firebase and get jobs
+async function getJobsFromFirebase(page = 1, limit = 6, category?: string) {
+  try {
+    // Dynamic imports to avoid initialization issues
+    const { initializeApp } = await import('firebase/app');
+    const { getFirestore, collection, getDocs, query, orderBy, startAt, limit: firestoreLimit } = await import('firebase/firestore');
+    
+    const firebaseConfig = {
+      apiKey: process.env.FIREBASE_API_KEY,
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.FIREBASE_APP_ID,
+      measurementId: process.env.FIREBASE_MEASUREMENT_ID,
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    let jobQuery = query(
+      collection(db, 'jobs'),
+      orderBy('posted_date', 'desc'),
+      firestoreLimit(limit)
+    );
+
+    if (page > 1) {
+      const offset = (page - 1) * limit;
+      jobQuery = query(
+        collection(db, 'jobs'),
+        orderBy('posted_date', 'desc'),
+        startAt(offset),
+        firestoreLimit(limit)
+      );
+    }
+
+    const snapshot = await getDocs(jobQuery);
+    const jobs = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // Filter by category if specified
+    if (category && category !== 'all') {
+      return jobs.filter(job => 
+        job.category?.toLowerCase() === category.toLowerCase() ||
+        job.company?.toLowerCase().includes(category.toLowerCase())
+      );
+    }
+
+    return jobs;
+  } catch (error) {
+    console.error('Firebase error:', error);
+    throw error;
   }
-});
+}
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCORS(res);
 
-// Simplified logging for production
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
-  });
-  next();
-});
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-// Register API routes
-registerRoutes(app);
+  const { url } = req;
+  const urlPath = url?.split('?')[0] || '';
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
-  });
-});
+  try {
+    // Debug endpoint
+    if (urlPath.endsWith('/debug')) {
+      return res.json({
+        nodeEnv: process.env.NODE_ENV,
+        hasFirebaseApiKey: !!process.env.FIREBASE_API_KEY,
+        hasFirebaseProjectId: !!process.env.FIREBASE_PROJECT_ID,
+        firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
+        timestamp: new Date().toISOString(),
+        url: req.url,
+        method: req.method
+      });
+    }
 
-// Error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  console.error('API Error:', err);
-  res.status(status).json({ message, timestamp: new Date().toISOString() });
-});
+    // Health check endpoint
+    if (urlPath.endsWith('/health')) {
+      return res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV
+      });
+    }
 
-// Export for Vercel serverless functions
-export default (req: any, res: any) => {
-  return app(req, res);
-};
+    // Jobs endpoint
+    if (urlPath.endsWith('/jobs') || urlPath.includes('/jobs/')) {
+      const urlParams = new URLSearchParams(url?.split('?')[1] || '');
+      const page = parseInt(urlParams.get('page') || '1');
+      const limit = parseInt(urlParams.get('limit') || '6');
+      const category = urlParams.get('category') || undefined;
+
+      console.log('Fetching jobs:', { page, limit, category });
+      
+      const jobs = await getJobsFromFirebase(page, limit, category);
+      
+      return res.json(jobs);
+    }
+
+    // Firebase test endpoint
+    if (urlPath.endsWith('/test-firebase')) {
+      const jobs = await getJobsFromFirebase(1, 3);
+      return res.json({
+        success: true,
+        jobCount: jobs.length,
+        sampleJobs: jobs.slice(0, 2),
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Default 404
+    return res.status(404).json({ 
+      message: 'Endpoint not found',
+      path: urlPath,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : 'Internal Server Error',
+      timestamp: new Date().toISOString()
+    });
+  }
+}
