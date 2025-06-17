@@ -67,10 +67,10 @@ export function CookieConsent() {
 
   const initializeGoogleAnalytics = () => {
     // Initialize Google Analytics
-    if (typeof window !== 'undefined' && !window.gtag) {
+    if (typeof window !== 'undefined' && !window.gtag && preferences.analytics) {
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID';
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX'; // <-- Replace with your real GA4 ID
       document.head.appendChild(script);
 
       window.dataLayer = window.dataLayer || [];
@@ -79,15 +79,19 @@ export function CookieConsent() {
       };
       window.gtag = gtag;
       gtag('js', new Date());
-      gtag('config', 'GA_MEASUREMENT_ID');
+      gtag('config', 'G-XXXXXXXXXX'); // <-- Replace with your real GA4 ID
     }
   };
 
   const initializeGoogleAds = () => {
     // Initialize Google AdSense
-    if (typeof window !== 'undefined' && !document.querySelector('script[src*="adsbygoogle.js"]')) {
+    if (
+      typeof window !== 'undefined' &&
+      !document.querySelector('script[src*="adsbygoogle.js"]') &&
+      preferences.advertising
+    ) {
       const script = document.createElement('script');
-      script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXX';
+      script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3243012748609704'; // <-- Replace with your real AdSense client ID if needed
       script.async = true;
       script.crossOrigin = 'anonymous';
       document.head.appendChild(script);
@@ -105,42 +109,21 @@ export function CookieConsent() {
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                 <div className="flex items-start gap-3 flex-1">
-                  <Cookie className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                  <Cookie className="h-6 w-6 text-yellow-500 mt-1" />
                   <div>
-                    <h3 className="font-semibold text-foreground mb-2">
-                      We use cookies to enhance your experience
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      We use essential cookies to make our site work. We'd also like to set optional cookies to help us 
-                      improve our website and show you relevant ads. We won't set optional cookies unless you enable them.
+                    <h3 className="font-semibold text-lg mb-1">We Value Your Privacy</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      We use cookies to enhance your experience, analyze site usage, and show relevant ads. You can manage your preferences below. See our{' '}
+                      <a href="/privacy" className="underline text-blue-600 hover:text-blue-800" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSettings(true)}
-                    className="order-3 sm:order-1"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Customize
+                <div className="flex gap-2 mt-4 md:mt-0">
+                  <Button variant="outline" onClick={() => setShowSettings(true)}>
+                    <Settings className="h-4 w-4 mr-1" /> Cookie Settings
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={acceptNecessary}
-                    className="order-2"
-                  >
-                    Necessary Only
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={acceptAll}
-                    className="order-1 sm:order-3"
-                  >
-                    Accept All
-                  </Button>
+                  <Button variant="secondary" onClick={acceptAll}>Accept All</Button>
+                  <Button variant="ghost" onClick={acceptNecessary}>Reject Non-Essential</Button>
                 </div>
               </div>
             </CardContent>

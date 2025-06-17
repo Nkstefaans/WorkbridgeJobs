@@ -33,7 +33,7 @@ export default function Municipality() {
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [jobsPerPage] = useState(6); // Show 6 jobs per page to reduce Firebase reads
+  const [jobsPerPage] = useState(15); // Show more jobs per page with ultra-compact cards
 
   const { data: jobs = [], isLoading } = useQuery<Job[]>({
     queryKey: ["/api/jobs", searchQuery, searchLocation, "municipality", currentPage, jobsPerPage],

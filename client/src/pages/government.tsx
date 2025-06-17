@@ -1,17 +1,18 @@
 import { ApplicationModal } from "@/components/ApplicationModal";
-import { JobCard } from "@/components/JobCard";
 import { EnhancedJobCard } from "@/components/EnhancedJobCard";
-import { MobileJobCard } from "@/components/MobileJobCard";
 import { EnhancedSearchBar } from "@/components/EnhancedSearchBar";
 import {
   EnhancedJobCardSkeleton,
-  MobileJobCardSkeleton,
-  PageLoadingSkeleton,
+  MobileJobCardSkeleton
 } from "@/components/EnhancedSkeletons";
+import {
+  HeaderBannerAd,
+  MobileStickyAd,
+  SidebarAd
+} from "@/components/GoogleAds";
 import { JobDetailsModal } from "@/components/JobDetailsModal";
-import { Button } from "@/components/ui/button";
+import { MobileJobCard } from "@/components/MobileJobCard";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -21,17 +22,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  HeaderBannerAd, 
-  SidebarAd, 
-  InContentAd, 
-  MobileStickyAd 
-} from "@/components/GoogleAds";
 import { type Job } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, MapPin, Search, Shield } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Building2, Search, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Government() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,7 +34,7 @@ export default function Government() {
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [jobsPerPage] = useState(6); // Show 6 jobs per page to reduce Firebase reads
+  const [jobsPerPage] = useState(15); // Show more jobs per page with ultra-compact cards
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect mobile screen size

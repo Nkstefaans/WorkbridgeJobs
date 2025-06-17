@@ -10,13 +10,18 @@ import { HeaderBannerAd, InContentAd, MobileStickyAd, SidebarAd } from "@/compon
 import { JobDetailsModal } from "@/components/JobDetailsModal";
 import { JobFilters } from "@/components/JobFilters";
 import { JobPostModal } from "@/components/JobPostModal";
+import {
+    MobileFiltersSheet,
+    MobileFloatingActions,
+    MobileSearchOverlay
+} from "@/components/MobileFloatingActions";
 import { MobileJobCard } from "@/components/MobileJobCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Job } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -26,10 +31,11 @@ export default function Home() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const [isJobPostModalOpen, setIsJobPostModalOpen] = useState(false);
-  const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [jobsPerPage] = useState(6); // Show 6 jobs per page to reduce Firebase reads
+  const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);  const [currentPage, setCurrentPage] = useState(1);
+  const [jobsPerPage] = useState(18); // Show even more jobs per page with ultra-compact cards
   const [isMobile, setIsMobile] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   
   const [filters, setFilters] = useState({
     jobTypes: [] as string[],
@@ -87,18 +93,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="bg-secondary py-16">
+    <div className="min-h-screen bg-gray-50">      {/* Hero Section */}
+      <section className="bg-secondary py-12 md:py-16">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6">
+          <h1 className="text-3xl md:text-4xl lg:text-6xl font-bold text-primary mb-4 md:mb-6">
             Find Your Dream Job
           </h1>
-          <p className="text-xl text-primary/70 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-primary/70 mb-6 md:mb-8 max-w-2xl mx-auto">
             Connect with top employers and discover opportunities that match your skills and aspirations
           </p>
-            {/* Enhanced Search Bar */}
-          <div className="max-w-4xl mx-auto">
+          {/* Enhanced Search Bar - Hidden on mobile, shown in overlay */}
+          <div className="hidden md:block max-w-4xl mx-auto">
             <EnhancedSearchBar
               searchQuery={searchQuery}
               searchLocation={searchLocation}
@@ -108,27 +113,37 @@ export default function Home() {
               isLoading={isLoading}
             />
           </div>
-        </div>
-      </section>      {/* Advertisement Banner */}
+          {/* Mobile Search CTA */}
+          <div className="md:hidden">
+            <Button 
+              onClick={() => setShowMobileSearch(true)}
+              className="w-full max-w-sm mx-auto bg-primary text-primary-foreground hover:bg-primary/90 font-medium h-12 text-lg"
+            >
+              <Search className="w-5 h-5 mr-2" />
+              Search Jobs
+            </Button>
+          </div>
+        </div>      </section>
+
+      {/* Advertisement Banner */}
       <div className="bg-white border-b border-gray-200 py-4">
         <div className="container mx-auto px-4">
           <HeaderBannerAd showInDev={true} />
         </div>
-      </div><main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar with Filters and Ads */}
-          <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
+      </div>
+
+      <main className="container mx-auto px-4 py-6 md:py-8"><div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar with Filters and Ads - Desktop Only */}
+          <div className="hidden lg:block lg:col-span-1 space-y-6 order-2 lg:order-1">
             <div className="sticky top-8 w-full" style={{ minWidth: '250px', maxWidth: '300px' }}>
               <JobFilters filters={filters} onFiltersChange={setFilters} />
             </div>
-              {/* Sidebar Ad - Desktop Only */}
-            <div className="hidden lg:block sticky top-8 w-full" style={{ minWidth: '250px', maxWidth: '300px' }}>
+            {/* Sidebar Ad - Desktop Only */}
+            <div className="sticky top-8 w-full" style={{ minWidth: '250px', maxWidth: '300px' }}>
               <SidebarAd showInDev={true} />
             </div>
-          </div>
-
-          {/* Job Listings */}
-          <div className="lg:col-span-3 order-1 lg:order-2">
+          </div>          {/* Job Listings */}
+          <div className="lg:col-span-3 col-span-1 order-1 lg:order-2">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-primary">
@@ -136,7 +151,7 @@ export default function Home() {
                 </h2>
                 <p className="text-muted-foreground">Based on your search criteria</p>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-4">
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
@@ -155,7 +170,20 @@ export default function Home() {
                   Post Job
                 </Button>
               </div>
-            </div>            {/* Job Cards with Enhanced Design */}
+              {/* Mobile-only sort dropdown */}
+              <div className="md:hidden">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">Recent</SelectItem>
+                    <SelectItem value="salary-high">High to Low</SelectItem>
+                    <SelectItem value="salary-low">Low to High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>{/* Job Cards with Enhanced Design */}
             <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 stagger-animation'}`}>
               {isLoading ? (
                 // Enhanced loading skeletons
@@ -283,7 +311,52 @@ export default function Home() {
           setSelectedJob(null);
         }}
         onApply={handleApply}
-      />      {/* Mobile Sticky Ad */}
+      />      {/* Mobile Floating Actions */}
+      {isMobile && (
+        <>
+          <MobileFloatingActions
+            onPostJob={handleJobPost}
+            onShowFilters={() => setShowMobileFilters(true)}
+            onSearch={() => setShowMobileSearch(true)}
+            jobCount={jobs.length}
+            hasActiveFilters={
+              filters.jobTypes.length > 0 || 
+              filters.experienceLevels.length > 0 || 
+              filters.salaryRange !== "any"
+            }
+          />
+          
+          {/* Mobile Filters Sheet */}
+          <MobileFiltersSheet
+            isOpen={showMobileFilters}
+            onClose={() => setShowMobileFilters(false)}
+          >
+            <div className="p-4">
+              <JobFilters filters={filters} onFiltersChange={setFilters} />
+            </div>
+          </MobileFiltersSheet>
+          
+          {/* Mobile Search Overlay */}
+          <MobileSearchOverlay
+            isOpen={showMobileSearch}
+            onClose={() => setShowMobileSearch(false)}
+          >
+            <EnhancedSearchBar
+              searchQuery={searchQuery}
+              searchLocation={searchLocation}
+              onSearchQueryChange={setSearchQuery}
+              onSearchLocationChange={setSearchLocation}
+              onSearch={() => {
+                handleSearch();
+                setShowMobileSearch(false);
+              }}
+              isLoading={isLoading}
+            />
+          </MobileSearchOverlay>
+        </>
+      )}
+
+      {/* Mobile Sticky Ad */}
       <MobileStickyAd showInDev={true} />
 
       {/* Cookie Consent */}
