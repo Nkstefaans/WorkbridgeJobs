@@ -1,6 +1,6 @@
-import { storage } from "../server/storage";
-import pdfParse from "pdf-parse";
 import https from "https";
+import pdfParse from "pdf-parse-fork"; // ✅ replaced with fork
+import { storage } from "../server/storage";
 
 const PDF_URL = "https://www.gov.za/sites/default/files/PUBLIC%20SERVICE%20VACANCY%20CIRCULAR_P.pdf";
 
@@ -8,6 +8,7 @@ async function scrapeAndSeed() {
   console.log("📥 Fetching latest Provincial Vacancy Circular...");
 
   const buffer = await new Promise<Buffer>((resolve, reject) => {
+    
     https.get(PDF_URL, (res) => {
       const chunks: Buffer[] = [];
       res.on("data", (chunk) => chunks.push(chunk));
@@ -15,12 +16,11 @@ async function scrapeAndSeed() {
     }).on("error", reject);
   });
 
-  const data = await pdfParse(buffer);
+  const data = await pdfParse(buffer);   // ✅ works with fork
   const text = data.text;
 
   const blocks = text.split(/POST \d+\/\d+/i).slice(1);
 
-  // Optional: clear old gov jobs first (add this method to storage later if you want)
   console.log(`Found ${blocks.length} posts — seeding into Firebase...`);
 
   for (const block of blocks) {
@@ -39,7 +39,7 @@ async function scrapeAndSeed() {
       description: full.substring(0, 800) + "\n\nApply via official Z83 + CV (see circular for details)",
       salary_min: salaryText ? parseInt(salaryText.replace(/[^0-9]/g, "")) || null : null,
       salary_max: null,
-      job_type: "Full-time", // or "Contract" — you can make this smarter later
+      job_type: "Full-time",
       skills: [],
       company_logo: "https://via.placeholder.com/60x60/0066cc/ffffff?text=GOV",
     };
@@ -47,7 +47,7 @@ async function scrapeAndSeed() {
     await storage.createJob(insertJob);
   }
 
-  console.log(`✅ DONE — All government jobs seeded into Firebase! Your site will now show them.`);
+  console.log(`✅ DONE — All government jobs seeded into Firebase! Refresh your site to see them.`);
 }
 
 scrapeAndSeed().catch(console.error);
