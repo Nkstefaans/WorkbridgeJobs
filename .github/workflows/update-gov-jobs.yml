@@ -1,0 +1,23 @@
+name: Update Gov Jobs
+
+on:
+  schedule:
+    - cron: '0 8 * * 5'   # Every Friday 10:00 SA time
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/scrape-gov-jobs.js
+      - run: |
+          git config user.name "GovBot"
+          git config user.email "bot@workbridge.co.za"
+          git add data/gov-jobs.json
+          git commit -m "Auto-update: Fresh gov jobs $(date)" || echo "No changes"
+          git push
