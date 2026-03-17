@@ -136,6 +136,83 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use Firebase storage directly
-console.log('🔥 Initializing Firebase Storage...');
-export const storage: IStorage = new FirebaseStorage();
+// Fallback storage wrapper that uses Firebase first, then memory on permission errors.
+console.log('🔥 Initializing Firebase Storage with fallback...');
+
+export class FallbackStorage implements IStorage {
+  private firestore = new FirebaseStorage();
+  private memory = new MemStorage();
+
+  private logFallback(error: any) {
+    if (error?.code === 'permission-denied') {
+      console.warn('⚠️ Firestore permission denied or disabled. Falling back to in-memory storage.');
+      return true;
+    }
+    return false;
+  }
+
+  async getJobs(): Promise<Job[]> {
+    try {
+      return await this.firestore.getJobs();
+    } catch (error: any) {
+      if (this.logFallback(error)) return this.memory.getJobs();
+      throw error;
+    }
+  }
+
+  async getJob(id: number): Promise<Job | undefined> {
+    try {
+      return await this.firestore.getJob(id);
+    } catch (error: any) {
+      if (this.logFallback(error)) return this.memory.getJob(id);
+      throw error;
+    }
+  }
+
+  async createJob(job: InsertJob): Promise<Job> {
+    try {
+      return await this.firestore.createJob(job);
+    } catch (error: any) {
+      if (this.logFallback(error)) return this.memory.createJob(job);
+      throw error;
+    }
+  }
+
+  async searchJobs(query?: string, location?: string, jobType?: string, page?: number, limit?: number): Promise<Job[]> {
+    try {
+      return await this.firestore.searchJobs(query, location, jobType, page, limit);
+    } catch (error: any) {
+      if (this.logFallback(error)) return this.memory.searchJobs(query, location, jobType, page, limit);
+      throw error;
+    }
+  }
+
+  async getApplications(): Promise<Application[]> {
+    try {
+      return await this.firestore.getApplications();
+    } catch (error: any) {
+      if (this.logFallback(error)) return this.memory.getApplications();
+      throw error;
+    }
+  }
+
+  async getApplicationsByJobId(jobId: number): Promise<Application[]> {
+    try {
+      return await this.firestore.getApplicationsByJobId(jobId);
+    } catch (error: any) {
+      if (this.logFallback(error)) return this.memory.getApplicationsByJobId(jobId);
+      throw error;
+    }
+  }
+
+  async createApplication(application: InsertApplication): Promise<Application> {
+    try {
+      return await this.firestore.createApplication(application);
+    } catch (error: any) {
+      if (this.logFallback(error)) return this.memory.createApplication(application);
+      throw error;
+    }
+  }
+}
+
+export const storage: IStorage = new FallbackStorage();
